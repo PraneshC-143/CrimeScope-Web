@@ -1,0 +1,3938 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CrimeScope — Modern Crime Analytics (India 2017–2025)</title>
+    <meta name="description"
+        content="CrimeScope: Modern, responsive crime analytics dashboard for India (2017–2025) with filters, interactive charts, forecast overlays, table export, and a choropleth-style map." />
+    <!-- Favicon -->
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23dc2626'/><text x='50%25' y='60%25' text-anchor='middle' fill='white' font-size='18' font-family='sans-serif' font-weight='bold'>C</text></svg>" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Inter Tight"', 'Inter', 'ui-sans-serif', 'system-ui'] },
+                    colors: {
+                        indigo: {
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        },
+                        slate: {
+                            800: '#1e293b',
+                            900: '#0f172a',
+                            950: '#020617',
+                        }
+                    },
+                    boxShadow: {
+                        premium: '0 0 0 1px rgba(255,255,255,0.05), 0 10px 30px -10px rgba(0,0,0,0.5)',
+                        bento: '0 0 0 1px rgba(255,255,255,0.06) inset, 0 20px 40px -15px rgba(0,0,0,0.3)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- API Client to communicate with Python Data Backend -->
+    <script src="js/api_client.js"></script>
+
+    <style>
+        :root {
+            --bg0: #020617;
+            /* Slate 950 */
+            --bg1: #0f172a;
+            /* Slate 900 */
+            --card: rgba(30, 41, 59, 0.7);
+            /* Slate 800 with alpha */
+            --stroke: rgba(255, 255, 255, 0.06);
+            --stroke2: rgba(255, 255, 255, 0.1);
+            --text: #f8fafc;
+            /* Slate 50 */
+            --muted: #94a3b8;
+            /* Slate 400 */
+            --muted2: #64748b;
+            /* Slate 500 */
+
+            --brand: #6366f1;
+            /* Indigo 500 */
+            --brand-p: #4f46e5;
+            /* Indigo 600 */
+
+            --danger: #f43f5e;
+            /* Rose 500 */
+            --success: #10b981;
+            /* Emerald 500 */
+            --warning: #f59e0b;
+            /* Amber 500 */
+        }
+
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            font-family: '"Inter Tight"', Inter, system-ui, -apple-system, sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(1000px 600px at 10% 20%, rgba(99, 102, 241, 0.08), transparent 50%),
+                radial-gradient(800px 500px at 90% 80%, rgba(79, 70, 229, 0.05), transparent 50%),
+                var(--bg0);
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+
+        .glass {
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.94), rgba(15, 23, 42, 0.9));
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            box-shadow: 0 18px 40px -28px rgba(0, 0, 0, 0.65);
+        }
+
+        .glass-strong {
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.95));
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            box-shadow: 0 24px 48px -30px rgba(0, 0, 0, 0.72);
+        }
+
+        .soft-ring {
+            box-shadow: 0 0 0 1px rgba(255, 255, 255, .06) inset;
+        }
+
+        .shine {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .shine:before {
+            content: "";
+            position: absolute;
+            inset: -2px;
+            background: radial-gradient(560px 100px at 16% 6%, rgba(255, 255, 255, .08), transparent 60%);
+            pointer-events: none;
+            transform: translateZ(0);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: .55rem;
+            border: 1px solid rgba(255, 255, 255, .14);
+            background: rgba(255, 255, 255, .06);
+            color: rgba(255, 255, 255, .88);
+            padding: .7rem 1rem;
+            border-radius: .9rem;
+            transition: transform .15s ease, background .15s ease, border-color .15s ease;
+            user-select: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            background: rgba(255, 255, 255, .09);
+            border-color: rgba(255, 255, 255, .18);
+        }
+
+        .btn:active {
+            transform: translateY(0px) scale(.99);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--brand), var(--brand-p));
+            border-color: rgba(255, 255, 255, .1);
+            color: #fff;
+            box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #818cf8, #6366f1);
+            box-shadow: 0 15px 30px -5px rgba(99, 102, 241, 0.4);
+        }
+
+        option {
+            background-color: #0f172a;
+            /* slate-900 */
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.9rem;
+            padding: 0.5rem;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .35rem .6rem;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, .14);
+            background: rgba(255, 255, 255, .06);
+            color: rgba(255, 255, 255, .78);
+            font-size: .8rem;
+        }
+
+        .kbd {
+            font-size: .75rem;
+            color: rgba(255, 255, 255, .65);
+            border: 1px solid rgba(255, 255, 255, .15);
+            border-bottom-color: rgba(255, 255, 255, .10);
+            background: rgba(255, 255, 255, .06);
+            border-radius: .55rem;
+            padding: .15rem .45rem;
+        }
+
+        .muted {
+            color: var(--muted);
+        }
+
+        .muted2 {
+            color: var(--muted2);
+        }
+
+        .gridline {
+            background-image:
+                linear-gradient(to right, rgba(255, 255, 255, .06) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, .06) 1px, transparent 1px);
+            background-size: 64px 64px;
+            mask-image: radial-gradient(circle at 20% 20%, rgba(0, 0, 0, .85), rgba(0, 0, 0, 0) 62%);
+            -webkit-mask-image: radial-gradient(circle at 20% 20%, rgba(0, 0, 0, .85), rgba(0, 0, 0, 0) 62%);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ─── SKELETON LOADERS ───────────────────────── */
+        .skeleton {
+            background: rgba(255, 255, 255, .03);
+            background-image: linear-gradient(90deg, transparent, rgba(255, 255, 255, .05), transparent);
+            background-size: 200px 100%;
+            background-repeat: no-repeat;
+            animation: shimmer 1.5s infinite;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -200px 0;
+            }
+
+            100% {
+                background-position: calc(200px + 100%) 0;
+            }
+        }
+
+        .loading .skeleton-text {
+            height: 1em;
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+
+        .loading .hide-on-load {
+            display: none;
+        }
+
+        .is-loading .skeleton-box {
+            display: block !important;
+        }
+
+        .is-loading .real-content {
+            display: none !important;
+        }
+
+        /* Leaflet glass adjustments */
+        .leaflet-container {
+            background: rgba(255, 255, 255, .02);
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+
+        .leaflet-control-zoom a {
+            background: rgba(15, 23, 42, .65) !important;
+            color: rgba(255, 255, 255, .85) !important;
+            border: 1px solid rgba(255, 255, 255, .14) !important;
+            backdrop-filter: blur(10px);
+        }
+
+        .leaflet-control-zoom a:hover {
+            background: rgba(15, 23, 42, .78) !important;
+        }
+
+        .leaflet-control-attribution {
+            background: rgba(15, 23, 42, .35) !important;
+            color: rgba(255, 255, 255, .7) !important;
+            border-radius: .75rem 0 0 0;
+            border: 1px solid rgba(255, 255, 255, .10);
+            backdrop-filter: blur(10px);
+        }
+
+        .leaflet-tooltip {
+            background: rgba(15, 23, 42, .82);
+            color: rgba(255, 255, 255, .92);
+            border: 1px solid rgba(255, 255, 255, .14);
+            border-radius: .75rem;
+            box-shadow: 0 18px 50px rgba(0, 0, 0, .35);
+            padding: .5rem .6rem;
+        }
+
+        /* Mobile sidebar */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .45);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+            z-index: 40;
+            display: none;
+        }
+
+        .overlay.show {
+            display: block;
+        }
+
+        /* ─── LOADING OVERLAY ─────────────────────────────────── */
+        #loadingOverlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: rgba(7, 10, 26, 0.96);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.6s ease;
+        }
+
+        #loadingOverlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loader-ring {
+            width: 56px;
+            height: 56px;
+            border: 3px solid rgba(220, 38, 38, .2);
+            border-top-color: #dc2626;
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loader-dots span {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            margin: 0 3px;
+            border-radius: 50%;
+            background: rgba(220, 38, 38, .7);
+            animation: dotPulse 1.2s ease-in-out infinite;
+        }
+
+        .loader-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .loader-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes dotPulse {
+
+            0%,
+            80%,
+            100% {
+                transform: scale(0.6);
+                opacity: 0.4;
+            }
+
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* ─── PARTICLE CANVAS ─────────────────────────────────── */
+        #particleCanvas {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0.55;
+            z-index: 0;
+        }
+
+        /* ─── ANIMATED COUNTER ────────────────────────────────── */
+        .count-up {
+            transition: color 0.3s;
+        }
+
+        /* ─── SKELETON LOADER ─────────────────────────────────── */
+        .skeleton {
+            background: linear-gradient(90deg,
+                    rgba(255, 255, 255, .06) 25%,
+                    rgba(255, 255, 255, .12) 50%,
+                    rgba(255, 255, 255, .06) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s infinite;
+            border-radius: 6px;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        /* ─── CARD TILT / HOVER 3D ────────────────────────────── */
+        .tilt-card {
+            transform-style: preserve-3d;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .tilt-card:hover {
+            box-shadow: 0 20px 60px rgba(220, 38, 38, .18), 0 0 0 1px rgba(255, 255, 255, .08) inset;
+        }
+
+        /* ─── SCROLL REVEAL ───────────────────────────────────── */
+        .reveal {
+            opacity: 0;
+            transform: translateY(22px);
+            transition: opacity 0.55s ease, transform 0.55s ease;
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ─── KPI PULSE ON UPDATE ─────────────────────────────── */
+        @keyframes kpiPulse {
+            0% {
+                color: #fca5a5;
+            }
+
+            100% {
+                color: inherit;
+            }
+        }
+
+        .kpi-updated {
+            animation: kpiPulse 0.7s ease;
+        }
+
+        /* ─── TOAST NOTIFICATION ──────────────────────────────── */
+        #toastContainer {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 9000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .toast {
+            padding: 0.75rem 1.1rem;
+            background: rgba(15, 23, 42, 0.92);
+            border: 1px solid rgba(255, 255, 255, .14);
+            border-radius: 0.9rem;
+            color: rgba(255, 255, 255, .9);
+            font-size: 0.85rem;
+            backdrop-filter: blur(12px);
+            animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, .3);
+        }
+
+        @keyframes toastIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes toastOut {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+
+            to {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+        }
+
+        /* ─── BACK TO TOP ─────────────────────────────────────── */
+        #backToTop {
+            position: fixed;
+            bottom: 1.5rem;
+            left: 1.5rem;
+            z-index: 8000;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(220, 38, 38, .85);
+            border: 1px solid rgba(255, 255, 255, .14);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s, transform 0.3s;
+            box-shadow: 0 4px 20px rgba(220, 38, 38, .35);
+        }
+
+        #backToTop.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        #backToTop:hover {
+            background: rgba(220, 38, 38, 1);
+            transform: translateY(-2px);
+        }
+
+        /* ─── MAP LEGEND ──────────────────────────────────────── */
+        .map-legend {
+            background: rgba(15, 23, 42, 0.82);
+            border: 1px solid rgba(255, 255, 255, .12);
+            border-radius: 0.75rem;
+            padding: 0.6rem 0.8rem;
+            font-size: 0.72rem;
+            color: rgba(255, 255, 255, .75);
+            backdrop-filter: blur(10px);
+        }
+
+        .legend-bar {
+            height: 8px;
+            border-radius: 4px;
+            margin: 4px 0;
+            background: linear-gradient(to right,
+                    rgba(254, 202, 202, 0.7),
+                    rgba(220, 38, 38, 0.85),
+                    rgba(127, 29, 29, 0.95));
+        }
+
+        /* ─── CRIME DRILL-DOWN MODAL ──────────────────────────── */
+        #drillModal {
+            position: fixed;
+            inset: 0;
+            z-index: 8500;
+            background: rgba(0, 0, 0, .6);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+
+        #drillModal.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        #drillContent {
+            background: linear-gradient(135deg, rgba(15, 23, 42, .97), rgba(7, 10, 26, .97));
+            border: 1px solid rgba(255, 255, 255, .14);
+            border-radius: 1.25rem;
+            padding: 1.5rem;
+            width: min(520px, 94vw);
+            max-height: 80vh;
+            overflow-y: auto;
+            transform: scale(0.94);
+            transition: transform 0.25s ease;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, .5);
+        }
+
+        #drillModal.open #drillContent {
+            transform: scale(1);
+        }
+
+        /* ─── STATE COMPARISON PANEL ──────────────────────────── */
+        #comparePanel {
+            display: none;
+            background: linear-gradient(135deg, rgba(220, 38, 38, .08), rgba(153, 27, 27, .05));
+            border: 1px solid rgba(220, 38, 38, .2);
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        #comparePanel.active {
+            display: block;
+        }
+
+        /* ─── NAVBAR ACTIVE SECTION ───────────────────────────── */
+        .nav-active {
+            background: rgba(220, 38, 38, .15) !important;
+            border-color: rgba(220, 38, 38, .35) !important;
+            color: #fca5a5 !important;
+        }
+
+        /* ─── KEYBOARD SHORTCUT POPUP ─────────────────────────── */
+        #shortcutModal {
+            position: fixed;
+            inset: 0;
+            z-index: 8800;
+            background: rgba(0, 0, 0, .55);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        #shortcutModal.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .shortcut-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, .07);
+        }
+
+        .shortcut-row:last-child {
+            border: none;
+        }
+
+        /* ─── YEAR PLAYBACK BUTTON ────────────────────────────── */
+        #playbackBtn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            z-index: 500;
+            background: rgba(15, 23, 42, .85);
+            border: 1px solid rgba(255, 255, 255, .14);
+            color: white;
+            border-radius: 0.6rem;
+            padding: 0.3rem 0.7rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: background 0.2s;
+        }
+
+        #playbackBtn:hover {
+            background: var(--brand);
+            border-color: rgba(255, 255, 255, .3);
+        }
+
+        #playbackBtn.playing {
+            background: var(--brand-p);
+            border-color: rgba(255, 255, 255, .4);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- ─── LOADING OVERLAY ─────────────────────────── -->
+    <div id="loadingOverlay" style="background: var(--bg0);">
+        <div style="text-align:center">
+            <div class="loader-ring" style="margin:0 auto 1.5rem; border-top-color: var(--brand);"></div>
+            <div
+                style="font-weight:700;font-size:1.5rem;margin-bottom:0.5rem;color:var(--text);font-family:'Inter Tight'">
+                CrimeScope</div>
+            <div style="font-size:0.9rem;color:var(--muted);margin-bottom:1.5rem" id="loadingStatus">Initializing Elite
+                interactive engine…</div>
+            <div class="loader-dots"><span style="background:var(--brand)"></span><span
+                    style="background:var(--brand)"></span><span style="background:var(--brand)"></span></div>
+        </div>
+    </div>
+
+    <!-- ─── TOAST CONTAINER ─────────────────────────── -->
+    <div id="toastContainer"></div>
+
+    <!-- ─── BACK TO TOP ─────────────────────────────── -->
+    <button id="backToTop" title="Back to top" aria-label="Back to top">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round">
+            <path d="M18 15l-6-6-6 6" />
+        </svg>
+    </button>
+
+    <!-- ─── KEYBOARD SHORTCUT MODAL ─────────────────── -->
+    <div id="shortcutModal" role="dialog" aria-label="Keyboard shortcuts">
+        <div
+            style="background:rgba(15,23,42,0.95);border:1px solid var(--stroke2);border-radius:1.5rem;padding:2rem;width:min(440px,94vw);box-shadow:var(--tw-shadow-premium);backdrop-filter:blur(20px)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+                <div style="font-weight:700;font-size:1rem">⌨️ Keyboard Shortcuts</div>
+                <button onclick="document.getElementById('shortcutModal').classList.remove('open')"
+                    style="color:rgba(255,255,255,.5);font-size:1.2rem;background:none;border:none;cursor:pointer">✕</button>
+            </div>
+            <div class="shortcut-row"><span style="color:rgba(255,255,255,.75)">Toggle filters</span><kbd
+                    class="kbd">F</kbd></div>
+            <div class="shortcut-row"><span style="color:rgba(255,255,255,.75)">Focus search</span><kbd
+                    class="kbd">/</kbd></div>
+            <div class="shortcut-row"><span style="color:rgba(255,255,255,.75)">This popup</span><kbd
+                    class="kbd">?</kbd></div>
+            <div class="shortcut-row"><span style="color:rgba(255,255,255,.75)">Close / Escape</span><kbd
+                    class="kbd">Esc</kbd></div>
+            <div class="shortcut-row"><span style="color:rgba(255,255,255,.75)">Drill-down: click map bubble</span><span
+                    style="color:rgba(255,255,255,.4);font-size:.8rem">→ shows districts</span></div>
+            <div class="shortcut-row"><span style="color:rgba(255,255,255,.75)">Reset view: double-click map</span><span
+                    style="color:rgba(255,255,255,.4);font-size:.8rem">→ back to India</span></div>
+            <div class="shortcut-row"><span style="color:rgba(255,255,255,.75)">Click donut chart segment</span><span
+                    style="color:rgba(255,255,255,.4);font-size:.8rem">→ crime drill-down</span></div>
+        </div>
+    </div>
+
+    <!-- ─── CRIME DRILL-DOWN MODAL ───────────────────── -->
+    <div id="drillModal" role="dialog" aria-label="Crime drill-down">
+        <div id="drillContent" class="glass-strong"
+            style="border-radius:1.5rem; padding:2rem; border-color:var(--stroke2)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
+                <div id="drillTitle" style="font-weight:700;font-size:1.2rem;color:var(--brand)"></div>
+                <button id="closeDrillBtn"
+                    style="color:rgba(255,255,255,.5);font-size:1.2rem;background:none;border:none;cursor:pointer">✕</button>
+            </div>
+            <div id="drillBody"></div>
+        </div>
+    </div>
+
+    <div class="pointer-events-none fixed inset-0 gridline opacity-70"></div>
+
+
+    <!-- Topbar -->
+    <header class="sticky top-0 z-50 border-b border-white/8 bg-slate-950/88 backdrop-blur-md">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <button id="mobileMenuBtn" class="btn md:hidden" aria-label="Open filters">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" />
+                        </svg>
+                        Filters
+                    </button>
+
+                    <div class="flex items-center gap-3">
+                        <div class="h-9 w-9 rounded-xl glass shine flex items-center justify-center shadow-glow">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M12 2l2.2 6.4L21 9l-5 3.7 1.8 6.6L12 16.9 6.2 19.3 8 12.7 3 9l6.8-.6L12 2z"
+                                    stroke="rgba(255,255,255,.9)" stroke-width="1.6" stroke-linejoin="round" />
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="text-base font-semibold leading-5">CrimeScope</div>
+                            <div class="text-xs muted2 -mt-0.5">India Crime Analytics • 2017–2025</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hidden md:flex items-center gap-2">
+                    <span class="pill">
+                        <span class="h-2 w-2 rounded-full bg-emerald-400/90 shadow-glow animate-pulse"></span>
+                        Data Continuity: 98.4%
+                    </span>
+                    <span class="pill">
+                        <span class="h-2 w-2 rounded-full bg-indigo-400/90 shadow-glow"></span>
+                        Official Dataset
+                    </span>
+                    <button id="jumpDashboardBtn" class="btn btn-primary">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M12 3v10m0 0l4-4m-4 4l-4-4M4 17v3h16v-3" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        Dashboard
+                    </button>
+                    <a href="analysis.html" class="btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                            <line x1="12" y1="22.08" x2="12" y2="12" />
+                        </svg>
+                        Detailed Analysis
+                    </a>
+                    <button id="downloadSampleBtn" class="btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M12 3v10m0 0l4-4m-4 4l-4-4M4 17v3h16v-3" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        Export CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Landing -->
+    <section id="landing" class="relative">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 pb-10">
+            <div class="grid lg:grid-cols-12 gap-8 items-start">
+                <div class="lg:col-span-7 fade-in">
+                    <div class="inline-flex items-center gap-2 pill border-white/8 bg-white/[0.03] text-slate-300">
+                        <span class="h-2 w-2 rounded-full bg-indigo-400/90"></span>
+                        National crime intelligence dashboard • Forecast-aware analytics
+                    </div>
+
+                    <h1 class="mt-4 text-4xl sm:text-6xl font-bold tracking-tight leading-[1.1] font-['Inter Tight']">
+                        Professional crime intelligence for
+                        <span
+                            class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-sky-300 to-cyan-300">clearer decisions</span>
+                        across states, districts, and forecast horizons.
+                    </h1>
+
+                    <p class="mt-4 text-base sm:text-lg muted max-w-2xl">
+                        Review district-level crime patterns across India, compare historical movement, and extend the
+                        view through 2025 with a clearly separated forecast layer built for planning and analysis.
+                    </p>
+
+                    <div class="mt-6 flex flex-wrap gap-3">
+                        <button id="ctaExploreBtn" class="btn btn-primary">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                            </svg>
+                            Explore dashboard
+                        </button>
+                        <button id="ctaResetBtn" class="btn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M3 12a9 9 0 0 1 15.3-6.4M21 12a9 9 0 0 1-15.3 6.4M3 5v3h3M21 19v-3h-3"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                            </svg>
+                            Reset filters
+                        </button>
+                        <div class="flex items-center gap-2 ml-1 text-sm muted2">
+                            <span class="kbd">/</span><span>Search</span>
+                            <span class="kbd">F</span><span>Filters</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <div
+                            class="glass rounded-3xl p-6 shadow-bento border-white/5 relative overflow-hidden group min-h-[140px]">
+                            <div
+                                class="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                            </div>
+
+                            <!-- Skeleton State -->
+                            <div class="skeleton-box hidden space-y-3">
+                                <div class="skeleton w-24 h-3 opacity-20"></div>
+                                <div class="skeleton w-32 h-8 opacity-40"></div>
+                                <div class="skeleton w-40 h-3 opacity-10"></div>
+                            </div>
+
+                            <!-- Real Content -->
+                            <div class="real-content">
+                                <div class="flex items-center justify-between mb-1">
+                                    <div class="text-[11px] uppercase tracking-wider font-semibold text-indigo-400/80">
+                                        Current Scope Total</div>
+                                    <div
+                                        class="flex items-center gap-1 text-[9px] font-bold text-emerald-400/80 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/20">
+                                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            stroke-width="4">
+                                            <polyline points="20 6 9 17 4 12" />
+                                        </svg>
+                                        VERIFIED
+                                    </div>
+                                </div>
+                                <div id="heroTotalCrimes" class="text-3xl font-bold text-white tracking-tight">—</div>
+                                <div class="mt-3 text-xs text-slate-500 font-medium">Observed data, expanded when forecast mode is enabled</div>
+                            </div>
+                        </div>
+
+                        <div
+                            class="glass rounded-3xl p-6 shadow-bento border-white/5 flex flex-col justify-between group">
+                            <div>
+                                <div class="text-[11px] uppercase tracking-wider font-semibold text-indigo-400/80 mb-1">
+                                    Forecast Mode</div>
+                                <div class="text-xs text-white/90 font-medium mt-1">Include modeled years</div>
+                                <div class="text-[10px] text-slate-500 mt-1">Blend observed data with the 2023–2025 planning layer</div>
+                            </div>
+                            <div class="mt-4 flex items-center justify-between">
+                                <span class="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">Status:
+                                    Active</span>
+                                <div
+                                    class="relative inline-block w-10 h-6 align-middle select-none transition duration-200 ease-in">
+                                    <input type="checkbox" name="togglePrediction" id="predictionToggle"
+                                        checked
+                                        class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-none appearance-none cursor-pointer left-1 top-1 transition-transform duration-200 z-10" />
+                                    <label for="predictionToggle"
+                                        class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-800 cursor-pointer border border-white/10"></label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            class="glass rounded-3xl p-6 shadow-bento border-white/5 relative overflow-hidden group min-h-[140px]">
+                            <div
+                                class="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                            </div>
+
+                            <!-- Skeleton State -->
+                            <div class="skeleton-box hidden space-y-3">
+                                <div class="skeleton w-24 h-3 opacity-20"></div>
+                                <div class="skeleton w-32 h-8 opacity-40"></div>
+                                <div class="skeleton w-40 h-3 opacity-10"></div>
+                            </div>
+
+                            <!-- Real Content -->
+                            <div class="real-content">
+                                <div
+                                    class="text-[11px] uppercase tracking-wider font-semibold text-emerald-400/80 mb-1">
+                                    Leading Region</div>
+                                <div id="heroTopState" class="text-2xl font-bold text-white tracking-tight">—</div>
+                                <div id="heroTopStateMeta"
+                                    class="mt-2 text-xs text-slate-500 font-medium tracking-wide italic">—</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="comparePanel"></div>
+                </div>
+
+                <div class="lg:col-span-5 fade-in">
+                    <div class="glass-strong rounded-3xl p-5 shadow-glass soft-ring">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <div class="text-sm font-semibold">Snapshot</div>
+                                <div class="text-xs muted2 mt-0.5">What changed vs last year in selection</div>
+                            </div>
+                            <span class="pill">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M12 8v4l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round" />
+                                    <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke="currentColor"
+                                        stroke-width="2" />
+                                </svg>
+                                2017–2025
+                            </span>
+                        </div>
+
+                        <div class="mt-4 grid grid-cols-2 gap-3">
+                            <div class="glass rounded-2xl p-4 soft-ring">
+                                <div class="text-xs muted2">YoY Change</div>
+                                <div class="mt-2 flex items-center gap-2">
+                                    <div id="heroYoyArrow"
+                                        class="h-9 w-9 rounded-xl flex items-center justify-center bg-white/6 border border-white/10">
+                                        —
+                                    </div>
+                                    <div>
+                                        <div id="heroYoyValue" class="text-lg font-semibold">—</div>
+                                        <div class="text-xs muted2">Latest vs previous year</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="glass rounded-2xl p-4 soft-ring">
+                                <div class="text-xs muted2">Dominant crime</div>
+                                <div id="heroDominant" class="mt-2 text-lg font-semibold">—</div>
+                                <div id="heroDominantMeta" class="text-xs muted2 mt-0.5">—</div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 glass rounded-2xl p-4 soft-ring">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="text-sm font-semibold">Trend preview</div>
+                                    <div class="text-xs muted2">Total crimes by year</div>
+                                </div>
+                                <button id="heroFocusBtn" class="btn">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <path d="M4 13V4h9M20 11v9h-9" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round" stroke-linejoin="round" />
+                                        <path d="M14 10L21 3M3 21l7-7" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                    Open
+                                </button>
+                            </div>
+                            <div class="mt-3">
+                                <canvas id="heroMiniLine" height="120"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 text-xs muted2">
+                            Tip: Press <span class="kbd">F</span> to toggle filters. Use <span class="kbd">/</span> to
+                            jump to the table search.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dashboard -->
+    <section id="dashboard" class="relative pb-14">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="flex items-end justify-between gap-4">
+                <div>
+                    <div class="text-xl sm:text-2xl font-semibold tracking-tight">Dashboard</div>
+                    <div id="activeFilterText" class="text-sm muted2 mt-1">—</div>
+                </div>
+                <div class="hidden sm:flex items-center gap-2">
+                    <button id="exportCsvBtn" class="btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M12 3v10m0 0l4-4m-4 4l-4-4M4 17v3h16v-3" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        Export CSV
+                    </button>
+                    <button id="exportPdfBtn" class="btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M7 3h7l3 3v15a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" stroke="currentColor"
+                                stroke-width="2" stroke-linejoin="round" />
+                            <path d="M14 3v4h4" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                            <path d="M8 14h8M8 18h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                        Export PDF
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Filters Sidebar -->
+                <aside id="filtersPanel"
+                    class="lg:col-span-3 glass-strong rounded-3xl p-5 shadow-glass soft-ring h-fit flex flex-col gap-6 sticky top-6 z-40">
+
+                    <div class="flex items-center justify-between gap-2">
+                        <div>
+                            <div class="text-sm font-semibold">Filters</div>
+                            <div class="text-xs muted2 mt-0.5">Refine by region, years, and crime type</div>
+                        </div>
+                        <button id="clearFiltersBtn"
+                            class="p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                            title="Reset filters">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                                <path d="M3 3v5h5"></path>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Filter Selectors (Vertical Stack) -->
+                    <div class="space-y-4">
+
+                        <!-- State -->
+                        <div class="relative">
+                            <label
+                                class="block text-[11px] uppercase tracking-wider text-white/50 mb-1.5 font-semibold">State</label>
+                            <div class="relative">
+                                <div
+                                    class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-white/40">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                        <circle cx="12" cy="10" r="3"></circle>
+                                    </svg>
+                                </div>
+                                <select id="stateSelect"
+                                    class="w-full appearance-none rounded-2xl bg-white/5 border border-white/10 pl-9 pr-10 py-2.5 text-sm outline-none focus:border-white/20 focus:ring-2 focus:ring-indigo-400/20 text-white/90 cursor-pointer hover:bg-white/10 transition-colors">
+                                    <option value="__all__">All states</option>
+                                </select>
+                                <div
+                                    class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-white/40">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- District -->
+                        <div class="relative">
+                            <label
+                                class="block text-[11px] uppercase tracking-wider text-white/50 mb-1.5 font-semibold">District</label>
+                            <div class="relative">
+                                <div
+                                    class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-white/40">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                </div>
+                                <select id="districtSelect"
+                                    class="w-full appearance-none rounded-2xl bg-white/5 border border-white/10 pl-9 pr-10 py-2.5 text-sm outline-none focus:border-white/20 focus:ring-2 focus:ring-indigo-400/20 text-white/90 cursor-pointer hover:bg-white/10 transition-colors">
+                                    <option value="__all__">All districts</option>
+                                </select>
+                                <div
+                                    class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-white/40">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Crime Type -->
+                        <div class="relative">
+                            <label
+                                class="block text-[11px] uppercase tracking-wider text-white/50 mb-1.5 font-semibold">Crime
+                                Type</label>
+                            <div class="relative">
+                                <div
+                                    class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-white/40">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                    </svg>
+                                </div>
+                                <select id="crimeTypeSelect"
+                                    class="w-full appearance-none rounded-2xl bg-white/5 border border-white/10 pl-9 pr-10 py-2.5 text-sm outline-none focus:border-white/20 focus:ring-2 focus:ring-indigo-400/20 text-white/90 cursor-pointer hover:bg-white/10 transition-colors">
+                                    <option value="__all__">All crimes (Total)</option>
+                                </select>
+                                <div
+                                    class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-white/40">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Years Range -->
+                        <div class="relative">
+                            <label
+                                class="block text-[11px] uppercase tracking-wider text-white/50 mb-1.5 font-semibold">Time
+                                Period</label>
+                            <div
+                                class="flex items-center justify-center gap-1 bg-white/5 border border-white/10 rounded-2xl px-2 hover:bg-white/10 transition-colors">
+                                <div class="pl-2 flex items-center pointer-events-none text-white/40">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                                    </svg>
+                                </div>
+                                <select id="yearFromSelect"
+                                    class="appearance-none bg-transparent border-none py-2.5 px-0 text-sm outline-none text-white/90 cursor-pointer relative z-10 w-full text-center">
+                                </select>
+                                <span class="text-white/40 text-[10px]">—</span>
+                                <select id="yearToSelect"
+                                    class="appearance-none bg-transparent border-none py-2.5 px-0 text-sm outline-none text-white/90 cursor-pointer relative z-10 w-full text-center">
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="glass rounded-2xl p-4 soft-ring mt-6">
+                            <div class="flex items-center justify-between">
+                                <div class="text-xs text-white/70">Data source</div>
+                                <span id="qualityPill" class="pill text-[10px] py-0.5">Local Dataset</span>
+                            </div>
+                            <div class="mt-2 text-[11px] text-white/50 leading-relaxed">
+                                Exploring the official Indian Crime Analysis database. Map drill-downs and ML
+                                Predictions active.
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="pt-4 border-t border-white/5">
+                            <button id="applyFiltersBtn" class="btn btn-primary shadow-glow w-full flex justify-center">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
+                                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                                </svg>
+                                Apply Filters
+                            </button>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- Main Workspace -->
+                <div class="lg:col-span-9 space-y-6">
+                    <!-- KPIs -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                        <div class="glass rounded-3xl p-5 shadow-glass soft-ring shine">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <div class="text-xs muted2">Total crimes</div>
+                                    <div id="kpiTotal" class="mt-1 text-2xl font-semibold">—</div>
+                                </div>
+                                <div
+                                    class="h-10 w-10 rounded-2xl bg-indigo-500/15 border border-indigo-300/15 flex items-center justify-center">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <path d="M4 19V5M4 19h16M8 16v-5M12 16V8M16 16v-3" stroke="rgba(255,255,255,.9)"
+                                            stroke-width="2" stroke-linecap="round" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="mt-3 flex items-center gap-2">
+                                <span id="kpiTotalYoy" class="pill">—</span>
+                                <span class="text-xs muted2">YoY</span>
+                            </div>
+                        </div>
+
+                        <div class="glass rounded-3xl p-5 shadow-glass soft-ring shine">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <div class="text-xs muted2">Crime rate (index)</div>
+                                    <div id="kpiRate" class="mt-1 text-2xl font-semibold">—</div>
+                                </div>
+                                <div
+                                    class="h-10 w-10 rounded-2xl bg-sky-500/15 border border-sky-300/15 flex items-center justify-center">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <path d="M12 3v18M4 12h16" stroke="rgba(255,255,255,.9)" stroke-width="2"
+                                            stroke-linecap="round" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="mt-3 flex items-center gap-2">
+                                <span id="kpiRateDelta" class="pill">—</span>
+                                <span class="text-xs muted2">vs prev</span>
+                            </div>
+                        </div>
+
+                        <div class="glass rounded-3xl p-5 shadow-glass soft-ring shine">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <div class="text-xs muted2">Top state</div>
+                                    <div id="kpiTopState" class="mt-1 text-2xl font-semibold">—</div>
+                                </div>
+                                <div
+                                    class="h-10 w-10 rounded-2xl bg-violet-500/15 border border-violet-300/15 flex items-center justify-center">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <path d="M12 17l-5 3 1-6-4-4 6-.5L12 4l2 5.5 6 .5-4 4 1 6-5-3Z"
+                                            stroke="rgba(255,255,255,.9)" stroke-width="2" stroke-linejoin="round" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="mt-3 text-xs muted2">
+                                <span id="kpiTopStateMeta">—</span>
+                            </div>
+                        </div>
+
+                        <div class="glass rounded-3xl p-5 shadow-glass soft-ring shine">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <div class="text-xs muted2">Dominant crime</div>
+                                    <div id="kpiDominant" class="mt-1 text-2xl font-semibold">—</div>
+                                </div>
+                                <div
+                                    class="h-10 w-10 rounded-2xl bg-emerald-500/12 border border-emerald-300/15 flex items-center justify-center">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <path d="M20 6L9 17l-5-5" stroke="rgba(255,255,255,.9)" stroke-width="2"
+                                            stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="mt-3 text-xs muted2">
+                                <span id="kpiDominantMeta">—</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Forecast Deck -->
+                    <div
+                        class="glass-strong rounded-[28px] p-6 shadow-bento soft-ring shine mt-6 border-indigo-500/20 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.18),transparent_40%),linear-gradient(135deg,rgba(15,23,42,0.98),rgba(30,41,59,0.88))]">
+                        <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
+                            <div class="max-w-xl">
+                                <div class="flex items-center gap-2 text-sm font-semibold">
+                                    <span
+                                        class="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-indigo-400/20 bg-indigo-500/15 text-indigo-300">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                            <path d="M4 16l4-5 4 3 8-9" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round" />
+                                            <path d="M20 10V5h-5" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                    </span>
+                                    Forecast Engine
+                                </div>
+                                <div class="mt-3 flex flex-wrap items-center gap-3 text-xs">
+                                    <span class="pill border-indigo-400/20 bg-indigo-500/10 text-indigo-200">2023–2025
+                                        modeled horizon</span>
+                                    <span class="pill border-emerald-400/20 bg-emerald-500/10 text-emerald-200">Actual
+                                        data held through 2022</span>
+                                </div>
+                                <div class="mt-4 flex items-end gap-3">
+                                    <div>
+                                        <div class="text-[11px] uppercase tracking-[0.24em] text-slate-400">Target
+                                            Year</div>
+                                        <input type="number" id="predictInputYear" value="2025" min="2023" max="2030"
+                                            class="mt-2 w-24 rounded-2xl border border-white/10 bg-slate-950/60 px-3 py-2 text-center text-2xl font-semibold text-white focus:border-indigo-400/40 focus:outline-none">
+                                    </div>
+                                    <div class="text-xs text-slate-400 leading-5 max-w-sm">
+                                        Model-aware projection based on trend slope, ensemble drift, and historical
+                                        volatility. Use it as a planning signal, not raw source data.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 min-w-0 lg:min-w-[520px]">
+                                <div class="rounded-3xl border border-white/8 bg-slate-950/55 p-4">
+                                    <div class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Projected Total
+                                    </div>
+                                    <div id="kpiPrediction"
+                                        class="mt-3 text-3xl font-bold text-indigo-300 tracking-tight">—</div>
+                                    <div class="mt-2 text-xs text-slate-400">Forecast for selected state scope</div>
+                                </div>
+                                <div class="rounded-3xl border border-white/8 bg-slate-950/55 p-4">
+                                    <div class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Delta Vs Last
+                                    </div>
+                                    <div id="predictDelta" class="mt-3 text-2xl font-semibold text-white">—</div>
+                                    <div id="predictTrend" class="mt-2 text-xs text-slate-400">Awaiting forecast</div>
+                                </div>
+                                <div class="rounded-3xl border border-white/8 bg-slate-950/55 p-4">
+                                    <div class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Confidence Band
+                                    </div>
+                                    <div id="predictConfidence" class="mt-3 text-lg font-semibold text-white">—</div>
+                                    <div id="predictStability" class="mt-2 text-xs text-slate-400">Model stability —
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            class="mt-5 grid grid-cols-1 xl:grid-cols-[1.4fr_0.9fr] gap-4 border-t border-white/6 pt-5">
+                            <div>
+                                <div class="text-[11px] uppercase tracking-[0.24em] text-slate-500">Forecast Logic</div>
+                                <div id="predictNarrative" class="mt-2 text-sm text-slate-300 leading-6">
+                                    Forecast metadata will appear here once the dashboard resolves the current scope.
+                                </div>
+                            </div>
+                            <div class="rounded-3xl border border-white/8 bg-white/[0.03] p-4">
+                                <div class="text-[11px] uppercase tracking-[0.24em] text-slate-500">Model Stack</div>
+                                <div class="mt-2 flex flex-wrap gap-2">
+                                    <span id="predictModel"
+                                        class="pill border-indigo-400/20 bg-indigo-500/10 text-indigo-200">—</span>
+                                    <span id="predictSupport"
+                                        class="pill border-white/10 bg-white/[0.04] text-slate-300">Calibrating…</span>
+                                </div>
+                                <div id="predictComponents" class="mt-3 text-xs text-slate-400 leading-5">Model
+                                    components will appear here.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Map + charts -->
+                    <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                        <div class="xl:col-span-7 glass-strong rounded-3xl p-5 shadow-glass soft-ring">
+                            <div class="flex items-start justify-between gap-3">
+                                <div>
+                                    <div class="text-sm font-semibold">India map (state intensity)</div>
+                                    <div class="text-xs muted2 mt-0.5">Circle intensity approximates choropleth by state
+                                        centroid</div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="pill">
+                                        <span class="h-2 w-2 rounded-full bg-rose-400/90"></span>
+                                        Higher intensity
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="mt-4 relative">
+                                <div id="map" class="h-[360px] sm:h-[420px] w-full"></div>
+                                <!-- Year Playback Button -->
+                                <button id="playbackBtn" title="Animate through years">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M8 5v14l11-7z" />
+                                    </svg>
+                                    <span id="playbackLabel">Play</span>
+                                </button>
+                                <!-- Map Legend -->
+                                <div class="map-legend"
+                                    style="position:absolute;bottom:40px;left:10px;z-index:500;min-width:120px">
+                                    <div style="font-weight:600;margin-bottom:4px;font-size:0.72rem">Crime Intensity
+                                    </div>
+                                    <div class="legend-bar"></div>
+                                    <div style="display:flex;justify-content:space-between">
+                                        <span>Low</span><span>High</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-3 text-xs muted2">
+                                Tip: Click a state bubble to filter. Double-click background to clear state.
+                            </div>
+                        </div>
+
+                        <div class="xl:col-span-5 space-y-6">
+                            <div class="glass-strong rounded-3xl p-5 shadow-glass soft-ring">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div>
+                                        <div class="text-sm font-semibold">Crime trend (2017–2025)</div>
+                                        <div class="text-xs muted2 mt-0.5">Total for selection</div>
+                                    </div>
+                                    <span class="pill">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                            <path d="M4 19V5M4 19h16" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" />
+                                            <path d="M8 15l3-3 2 2 5-6" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                        Line
+                                    </span>
+                                </div>
+                                <div class="mt-3">
+                                    <canvas id="lineChart" height="170"></canvas>
+                                </div>
+                            </div>
+
+                            <div class="glass-strong rounded-3xl p-5 shadow-glass soft-ring">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div>
+                                        <div class="text-sm font-semibold">Distribution by crime type</div>
+                                        <div class="text-xs muted2 mt-0.5">Share of selected total</div>
+                                    </div>
+                                    <span class="pill">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                            <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke="currentColor"
+                                                stroke-width="2" />
+                                            <path d="M12 3a9 9 0 0 1 9 9h-9V3Z" stroke="currentColor" stroke-width="2"
+                                                stroke-linejoin="round" />
+                                        </svg>
+                                        Pie
+                                    </span>
+                                </div>
+                                <div class="mt-3">
+                                    <canvas id="pieChart" height="170"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-strong rounded-3xl p-5 shadow-glass soft-ring">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <div class="text-sm font-semibold">Top 10 regions</div>
+                                <div class="text-xs muted2 mt-0.5">By total crimes within selection (state or district)
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button id="toggleTopModeBtn" class="btn" title="Toggle: states / districts">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <path d="M4 6h16M4 12h10M4 18h13" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round" />
+                                    </svg>
+                                    <span id="topModeLabel">States</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <canvas id="barChart" height="120"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="glass-strong rounded-3xl p-5 shadow-glass soft-ring">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div>
+                                <div class="text-sm font-semibold">Raw data</div>
+                                <div class="text-xs muted2 mt-0.5">Sortable + searchable • Export CSV/PDF</div>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <div class="relative">
+                                    <input id="tableSearch"
+                                        class="w-full sm:w-72 rounded-2xl bg-white/5 border border-white/10 px-3 py-2 text-sm outline-none focus:border-white/20 focus:ring-2 focus:ring-indigo-400/20"
+                                        placeholder="Search state, district…" />
+                                    <div class="absolute right-2 top-1/2 -translate-y-1/2 text-xs muted2">
+                                        <span class="kbd">/</span>
+                                    </div>
+                                </div>
+                                <button id="tableCsvBtn" class="btn">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <path d="M12 3v10m0 0l4-4m-4 4l-4-4M4 17v3h16v-3" stroke="currentColor"
+                                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                    CSV
+                                </button>
+                                <button id="tablePdfBtn" class="btn">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <path d="M7 3h7l3 3v15a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"
+                                            stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                                        <path d="M14 3v4h4" stroke="currentColor" stroke-width="2"
+                                            stroke-linejoin="round" />
+                                        <path d="M8 14h8M8 18h6" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round" />
+                                    </svg>
+                                    PDF
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 overflow-hidden rounded-2xl border border-white/10">
+                            <div class="overflow-auto max-h-[520px]">
+                                <table class="min-w-full text-sm">
+                                    <thead class="sticky top-0 bg-black/25 backdrop-blur border-b border-white/10">
+                                        <tr class="text-left">
+                                            <th class="px-4 py-3 font-semibold cursor-pointer select-none"
+                                                data-sort="State">State <span class="muted2" id="sortState"></span></th>
+                                            <th class="px-4 py-3 font-semibold cursor-pointer select-none"
+                                                data-sort="District">District <span class="muted2"
+                                                    id="sortDistrict"></span></th>
+                                            <th class="px-4 py-3 font-semibold cursor-pointer select-none"
+                                                data-sort="Year">Year <span class="muted2" id="sortYear"></span></th>
+                                            <th class="px-4 py-3 font-semibold cursor-pointer select-none"
+                                                data-sort="Total">Total <span class="muted2" id="sortTotal"></span></th>
+                                            <th class="px-4 py-3 font-semibold cursor-pointer select-none whitespace-nowrap"
+                                                data-sort="CrimeType">Crime type (view) <span class="muted2"
+                                                    id="sortCrimeType"></span></th>
+                                            <th class="px-4 py-3 font-semibold cursor-pointer select-none text-right"
+                                                data-sort="CrimeValue">Value <span class="muted2"
+                                                    id="sortCrimeValue"></span></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tableBody" class="divide-y divide-white/8"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div
+                            class="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs muted2">
+                            <div id="tableMeta">—</div>
+                            <div class="flex items-center gap-2">
+                                <button id="prevPageBtn" class="btn">Prev</button>
+                                <span id="pageInfo" class="pill">—</span>
+                                <button id="nextPageBtn" class="btn">Next</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Mobile overlay + drawer -->
+    <div id="overlay" class="overlay"></div>
+    <div id="mobileDrawer"
+        class="fixed left-0 top-0 h-full w-[92%] max-w-sm z-50 -translate-x-full transition-transform duration-200 ease-out md:hidden">
+        <div class="h-full glass-strong shadow-glass p-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="text-sm font-semibold">Filters</div>
+                    <div class="text-xs muted2 mt-0.5">Tap apply to refresh</div>
+                </div>
+                <button id="closeDrawerBtn" class="btn" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
+            <div class="mt-4" id="drawerFiltersMount"></div>
+        </div>
+    </div>
+
+    <!-- Main Application Logic -->
+    <script>
+        // -----------------------------
+        // Populate specific dropdown definitions dynamically
+        // -----------------------------
+        let YEARS = [2017, 2018, 2019, 2020, 2021, 2022];
+        const PROJECTED_YEARS = [2023, 2024, 2025];
+        // ─── Crime Category Grouping ───────────────────────────
+        const CRIME_GROUPS = {
+            "Violence": ["murder", "clpbl_hmcrd_not_amt_murder", "abetment_of_suicide", "atmpt_cmmt_murder", "atmpt_cmmt_clpb_hmcrd", "vlntrly_caus_simple_hurt", "vlntrly_caus_dangers_weapons", "vlntrly_caus_pub_srvnt_duty", "hrt_endgrng_lf_safety", "other_simple_hurt", "vlntrly_caus_grvus_hurt", "grvus_hrt_dangerous_wepn", "acid_attack", "atmpt_acid_attack", "grvus_hrt_pub_srvnt_duty", "grvus_hrt_lf_safety", "other_grievous_hurt"],
+            "Sexual Offences": ["rape", "atmpt_rape", "assault_on_women", "sex_hrrsmt_work_office_prms", "sex_hrrsmt_pub_trnsprt_sys", "sex_hrrsmt_shelter_homes", "sex_hrrsmt_other_places", "voyeurism", "stalking", "insult_modesty_women"],
+            "Theft & Burglary": ["auto_motor_vehicle_theft", "other_thefts", "day_time_burglary", "night_burglary", "robbery", "dacoity", "dacoity_with_murder"],
+            "Economic & Fraud": ["extortion_and_blackmailing", "criminal_misappropriation", "criminal_breach_of_trust", "dsh_hon_rec_deal_stl_prop", "counterfeit_coin", "cntrfte_govt_stamp", "cntrft_seal_mark", "cntrft_curr_bank_notes", "bank_frauds", "atm_fraud", "credit_debit_card_fraud", "other_frauds", "cheating", "forgery", "cheating_impersonation"],
+            "Road & Traffic": ["hit_and_run", "acdnt_other_than_hit_and_run_", "deaths_negl_rel_rail_acdnt", "deaths_half_negl_drvng", "deaths_neg_civic_bodies", "rash_driving_pub_way", "csng_hrt_rsh_nglgnt_drvng_pblc_wy", "grvus_hrt_rsh_nglgnt_drvng"],
+            "Public Order": ["offence_against_state", "rioting_communal_religious", "rioting_sectarian", "rioting_industrial", "rioting_political", "rioting_caste_conflict", "rioting_agrarian", "rioting_students", "rioting_vigilants", "rioting_money_dispute", "rioting_water_dispute", "rioting_land_property_dispute", "rioting_family_disputes", "rioting_enmity_rivalry", "riot_elec_pwr_disp", "riot_andolan_morcha", "riot_polc_prsnl_gvt_srvnt", "other_rioting", "prmt_enmty_grps", "impt_asrtns_prjudc_intgrtn", "affray", "ofnc_religion", "disbnc_ordr_prmlgtd_pblc_srvnt"],
+            "Kids & Trafficking": ["missing_child_kidnpd", "other_kidnp_abduc", "kidnp_abdctn_begging", "kidnp_abdctn_murder", "kidnapping_for_ransom", "kidnp_abdctn_marrg", "proc_minor_girls", "import_girls_frgn_cntry", "other_kidnp_abduc_sec_365_369", "human_trafficking", "exp_traf_person", "sell_minors_prost", "buy_minors_prost"],
+            "Other IPC": ["dowry_deaths", "atmpt_cmmt_suicide", "miscarr_infant_foetic_aband", "wrngful_rest_cnfm", "intnt_disrbe", "unnatural_offences", "ofnc_elections", "harboring_offender", "sale_food_drugs", "sale_obscene_books_objects", "obscene_acts_songs_public_places", "ofnc_mischief", "arson", "criminal_trespass", "crlty_husbnd_relatives", "crcl_false_fake_news_rumours", "criminal_intimidation", "other_ipc_crimes"]
+        };
+
+        // ─── UI Animator Engine ────────────────────────────────
+        const UI = {
+            toast(msg, icon = "🔔") {
+                const c = document.getElementById("toastContainer");
+                if (!c) return;
+                const t = document.createElement("div");
+                t.className = "toast shine";
+                t.innerHTML = `<span>${icon}</span> <span>${msg}</span>`;
+                c.appendChild(t);
+                setTimeout(() => t.remove(), 3200);
+            },
+
+            animateValue(obj, start, end, duration) {
+                if (!obj) return;
+                let startTimestamp = null;
+                const step = (timestamp) => {
+                    if (!startTimestamp) startTimestamp = timestamp;
+                    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                    const val = Math.floor(progress * (end - start) + start);
+                    obj.textContent = formatInt(val);
+                    if (progress < 1) {
+                        window.requestAnimationFrame(step);
+                    } else {
+                        obj.classList.remove('count-up');
+                    }
+                };
+                obj.classList.add('count-up');
+                window.requestAnimationFrame(step);
+            },
+
+            particleBackground() {
+                const canvas = document.createElement("canvas");
+                canvas.id = "particleCanvas";
+                document.getElementById("landing")?.prepend(canvas);
+                const ctx = canvas.getContext("2d");
+                let particles = [];
+                const resize = () => {
+                    canvas.width = canvas.offsetWidth;
+                    canvas.height = canvas.offsetHeight;
+                };
+                window.addEventListener("resize", resize);
+                resize();
+
+                class Particle {
+                    constructor() {
+                        this.reset();
+                    }
+                    reset() {
+                        this.x = Math.random() * canvas.width;
+                        this.y = Math.random() * canvas.height;
+                        this.vx = (Math.random() - 0.5) * 0.4;
+                        this.vy = (Math.random() - 0.5) * 0.4;
+                        this.radius = Math.random() * 1.5 + 0.5;
+                        this.alpha = Math.random() * 0.5 + 0.2;
+                    }
+                    update() {
+                        this.x += this.vx;
+                        this.y += this.vy;
+                        if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.reset();
+                    }
+                    draw() {
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(99, 102, 241, ${this.alpha})`;
+                        ctx.fill();
+                    }
+                }
+
+                for (let i = 0; i < 60; i++) particles.push(new Particle());
+                const loop = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    particles.forEach(p => { p.update(); p.draw(); });
+                    requestAnimationFrame(loop);
+                };
+                loop();
+            },
+
+            initScrollReveal() {
+                const obs = new IntersectionObserver((entries) => {
+                    entries.forEach(e => {
+                        if (e.isIntersecting) e.target.classList.add("visible");
+                    });
+                }, { threshold: 0.1 });
+                document.querySelectorAll(".reveal").forEach(el => obs.observe(el));
+            },
+
+            setLoading(loading) {
+                const dashboard = document.getElementById("landing");
+                if (!dashboard) return;
+                if (loading) {
+                    dashboard.classList.add("is-loading");
+                } else {
+                    dashboard.classList.remove("is-loading");
+                    // Fade out legacy overlay if it exists
+                    const overlay = document.getElementById("loadingOverlay");
+                    if (overlay) {
+                        overlay.style.opacity = "0";
+                        overlay.style.pointerEvents = "none";
+                        setTimeout(() => overlay.remove(), 600);
+                    }
+                }
+            },
+
+            initTiltCards() {
+                document.querySelectorAll(".glass").forEach(card => {
+                    card.classList.add("tilt-card");
+                    card.addEventListener("mousemove", (e) => {
+                        const rect = card.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const y = e.clientY - rect.top;
+                        const rx = (y / rect.height - 0.5) * 10;
+                        const ry = (x / rect.width - 0.5) * -10;
+                        card.style.transform = `perspective(1000px) rotateX(${rx}deg) rotateY(${ry}deg)`;
+                    });
+                    card.addEventListener("mouseleave", () => {
+                        card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg)`;
+                    });
+                });
+            }
+        };
+
+        // ─── Playback Engine ──────────────────────────────────
+        let playbackInterval = null;
+        function toggleYearPlayback() {
+            const btn = document.getElementById("playbackBtn");
+            const label = document.getElementById("playbackLabel");
+            if (playbackInterval) {
+                clearInterval(playbackInterval);
+                playbackInterval = null;
+                btn.classList.remove("playing");
+                label.textContent = "Play";
+                UI.toast("Playback paused");
+            } else {
+                let currYearIndex = 0;
+                btn.classList.add("playing");
+                label.textContent = "Stop";
+                UI.toast("Auto-playback started", "▶️");
+                playbackInterval = setInterval(() => {
+                    const y = YEARS[currYearIndex];
+                    document.getElementById("yearFromSelect").value = y;
+                    document.getElementById("yearToSelect").value = y;
+                    syncFiltersFromUI();
+                    render();
+                    currYearIndex = (currYearIndex + 1) % YEARS.length;
+                    if (currYearIndex === 0) {
+                        clearInterval(playbackInterval);
+                        playbackInterval = null;
+                        btn.classList.remove("playing");
+                        label.textContent = "Play";
+                        UI.toast("Cycle complete");
+                    }
+                }, 1500);
+            }
+        }
+
+        // ─── Drill-down Logic ─────────────────────────────────
+        function showCrimeDrillDown(crimeType) {
+            const modal = document.getElementById("drillModal");
+            const title = document.getElementById("drillTitle");
+            const body = document.getElementById("drillBody");
+            if (!modal || !body) return;
+
+            title.textContent = `Drill-down: ${formatCrimeLabel(crimeType)}`;
+            // Find top districts for this crime in current filtered set
+            const rows = applyCurrentFilters(); // Use applyCurrentFilters to get the currently filtered data
+            const grouped = new Map();
+            rows.forEach(r => {
+                grouped.set(r.District, (grouped.get(r.District) || 0) + (r[crimeType] || 0));
+            });
+            const sorted = [...grouped.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+            body.innerHTML = `
+                <div class="mb-4 text-xs muted">Top regions contributing to this crime category:</div>
+                <div class="space-y-2">
+                    ${sorted.map(([d, val], i) => `
+                        <div class="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/5 reveal visible">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xs font-bold text-slate-500">#${i + 1}</span>
+                                <div class="text-xs font-medium">${d}</div>
+                            </div>
+                            <div class="text-xs font-bold text-rose-300">${formatInt(val)} cases</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            modal.classList.add("open");
+        }
+
+        let CRIME_TYPES = [];
+
+        // Approximate centroids for select Indian states (for map bubbles)
+        const STATE_CENTROIDS = {
+            "Uttar Pradesh": [26.8467, 80.9462],
+            "Bihar": [25.0961, 85.3131],
+            "West Bengal": [22.9868, 87.855],
+            "Madhya Pradesh": [22.9734, 78.6569],
+            "Rajasthan": [27.0238, 74.2179],
+            "Tamil Nadu": [11.1271, 78.6569],
+            "Karnataka": [15.3173, 75.7139],
+            "Gujarat": [22.2587, 71.1924],
+            "Andhra Pradesh": [15.9129, 79.74],
+            "Telangana": [18.1124, 79.0193],
+            "Odisha": [20.9517, 85.0985],
+            "Kerala": [10.8505, 76.2711],
+            "Punjab": [31.1471, 75.3412],
+            "Haryana": [29.0588, 76.0856],
+            "Delhi": [28.7041, 77.1025],
+            "Assam": [26.2006, 92.9376],
+            "Jharkhand": [23.6102, 85.2799],
+            "Chhattisgarh": [21.2787, 81.8661],
+            "Uttarakhand": [30.0668, 79.0193],
+            "Himachal Pradesh": [31.1048, 77.1734],
+            "Jammu And Kashmir": [33.7782, 76.5762],
+            "Goa": [15.2993, 74.124],
+            "Meghalaya": [25.467, 91.3662],
+            "Chandigarh": [30.7333, 76.7794],
+            "Manipur": [24.6637, 93.9063],
+            "Tripura": [23.9408, 91.9882],
+            "Ladakh": [34.1526, 77.5771],
+            "Andaman And Nicobar Islands": [11.7401, 92.6586],
+            "Maharashtra": [19.7515, 75.7139],
+            "Arunachal Pradesh": [28.218, 94.7278],
+            "Puducherry": [11.9416, 79.8083],
+            "Nagaland": [26.1584, 94.5624],
+            "Mizoram": [23.1645, 92.9376],
+            "The Dadra And Nagar Haveli And Daman And Diu": [20.1809, 73.0169],
+            "Sikkim": [27.533, 88.5122],
+            "Lakshadweep": [10.5667, 72.6417]
+        };
+
+        const STATE_DISTRICTS = {
+            "Uttar Pradesh": ["Lucknow", "Kanpur Nagar", "Varanasi", "Agra", "Ghaziabad"],
+            "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Nashik", "Thane"],
+            "Bihar": ["Patna", "Gaya", "Bhagalpur", "Muzaffarpur", "Darbhanga"],
+            "West Bengal": ["Kolkata", "Howrah", "North 24 Parganas", "Siliguri", "Asansol"],
+            "Madhya Pradesh": ["Bhopal", "Indore", "Jabalpur", "Gwalior", "Ujjain"],
+            "Rajasthan": ["Jaipur", "Jodhpur", "Kota", "Udaipur", "Ajmer"],
+            "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Salem", "Tiruchirappalli"],
+            "Karnataka": ["Bengaluru", "Mysuru", "Mangaluru", "Hubballi", "Belagavi"],
+            "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar"],
+            "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore", "Kurnool"],
+            "Telangana": ["Hyderabad", "Warangal", "Nizamabad", "Karimnagar", "Khammam"],
+            "Odisha": ["Bhubaneswar", "Cuttack", "Rourkela", "Sambalpur", "Puri"],
+            "Kerala": ["Thiruvananthapuram", "Kochi", "Kozhikode", "Thrissur", "Kannur"],
+            "Punjab": ["Ludhiana", "Amritsar", "Jalandhar", "Patiala", "Bathinda"],
+            "Haryana": ["Gurugram", "Faridabad", "Panipat", "Ambala", "Hisar"],
+            "Delhi": ["New Delhi", "Central Delhi", "South Delhi", "East Delhi", "North Delhi"],
+            "Assam": ["Guwahati", "Dibrugarh", "Silchar", "Jorhat", "Tezpur"],
+            "Jharkhand": ["Ranchi", "Jamshedpur", "Dhanbad", "Bokaro", "Hazaribagh"],
+            "Chhattisgarh": ["Raipur", "Bilaspur", "Durg", "Korba", "Jagdalpur"],
+            "Uttarakhand": ["Dehradun", "Haridwar", "Nainital", "Haldwani", "Roorkee"],
+            "Himachal Pradesh": ["Shimla", "Mandi", "Dharamshala", "Solan", "Kullu"],
+            "Jammu & Kashmir": ["Srinagar", "Jammu", "Anantnag", "Baramulla", "Pulwama"],
+            "Goa": ["Panaji", "Margao", "Vasco da Gama", "Mapusa", "Ponda"]
+        };
+
+        // Precise coordinates for demo districts found in STATE_DISTRICTS
+        const DISTRICT_COORDINATES = {
+            "Chittoor": [13.2983, 79.049],
+            "East Godavari": [17.1579, 82.0466],
+            "Guntur": [16.2791, 80.0441],
+            "Krishna": [16.4235, 80.7812],
+            "Kurnool": [15.526, 77.9478],
+            "Prakasam": [15.627, 79.6033],
+            "Srikakulam": [18.6162, 84.0836],
+            "Vizianagaram": [18.4868, 83.4038],
+            "West Godavari": [16.9049, 81.3565],
+            "Changlang": [27.2881, 96.4046],
+            "Papum Pare": [27.2902, 93.7109],
+            "East Kameng": [27.3287, 92.9905],
+            "West Kameng": [27.4338, 92.6237],
+            "Kurung Kumey": [27.9815, 93.2859],
+            "Lohit": [28.0087, 96.5867],
+            "Lower Dibang Valley": [28.3131, 95.8467],
+            "East Siang": [28.1513, 95.1563],
+            "Upper Siang": [28.7486, 94.7908],
+            "West Siang": [28.2824, 94.4591],
+            "Lower Subansiri": [27.6793, 93.8743],
+            "Upper Subansiri": [28.2368, 93.8883],
+            "Tawang": [27.6621, 91.9299],
+            "Tirap": [26.9633, 95.4697],
+            "Barpeta": [26.4547, 90.9757],
+            "Bongaigaon": [26.4694, 90.6504],
+            "Cachar": [24.7609, 92.8435],
+            "Darrang": [26.5672, 92.0438],
+            "Dhemaji": [27.5839, 94.8653],
+            "Dibrugarh": [27.4057, 95.0302],
+            "Goalpara": [26.0562, 90.6079],
+            "Golaghat": [26.3736, 93.7333],
+            "Hailakandi": [24.5075, 92.5996],
+            "Jorhat": [26.7695, 94.2816],
+            "Kamrup": [26.2605, 91.557],
+            "Karbi Anglong": [26.0735, 93.0233],
+            "Karimganj": [24.5847, 92.4009],
+            "Kokrajhar": [26.5994, 90.1885],
+            "Lakhimpur": [27.1749, 94.1482],
+            "Marigaon": [26.2906, 92.2604],
+            "Nagaon": [26.2086, 92.8624],
+            "Nalbari": [26.4863, 91.4609],
+            "Sonitpur": [26.7679, 93.0556],
+            "Tinsukia": [27.6034, 95.6208],
+            "Araria": [26.2647, 87.3612],
+            "Aurangabad": [20.0256, 75.2456],
+            "Pashchim Champaran": [27.0534, 84.2914],
+            "Banka": [24.8303, 86.8274],
+            "Begusarai": [25.5133, 86.1186],
+            "Bhagalpur": [25.2862, 87.09],
+            "Bhojpur": [25.4508, 84.5565],
+            "Buxar": [25.5061, 84.0752],
+            "Darbhanga": [26.1583, 86.0322],
+            "Gaya": [24.6805, 84.8379],
+            "Gopalganj": [26.4248, 84.4014],
+            "Munger": [25.2225, 86.514],
+            "Jamui": [24.7563, 86.2159],
+            "Jehanabad": [25.1514, 84.8261],
+            "Katihar": [25.5404, 87.6358],
+            "Khagaria": [25.4915, 86.5636],
+            "Kishanganj": [26.2443, 87.9453],
+            "Lakhisarai": [25.1582, 86.1529],
+            "Madhepura": [25.7821, 86.8554],
+            "Madhubani": [26.3556, 86.2308],
+            "Muzaffarpur": [26.1486, 85.3072],
+            "Nalanda": [25.214, 85.538],
+            "Nawada": [24.8189, 85.6568],
+            "Patna": [25.4676, 85.3693],
+            "Rohtas": [24.9403, 83.9755],
+            "Saharsa": [25.8375, 86.5868],
+            "Samastipur": [25.7777, 85.9676],
+            "Saran": [25.9239, 84.7984],
+            "Sheikhpura": [25.1255, 85.7777],
+            "Sheohar": [26.4868, 85.3206],
+            "Sitamarhi": [27.0613, 86.2687],
+            "Siwan": [26.133, 84.3881],
+            "Supaul": [26.2777, 86.7472],
+            "Vaishali": [25.7509, 85.3459],
+            "Bilaspur": [31.4074, 76.6465],
+            "Bijapur": [16.8121, 75.9026],
+            "Dhamtari": [20.5327, 81.7859],
+            "Durg": [21.1995, 81.3669],
+            "Raipur": [20.8268, 82.2524],
+            "Bastar": [19.3931, 81.4477],
+            "Janjgir-Champa": [21.9667, 82.8076],
+            "Jashpur": [22.767, 83.8883],
+            "Korba": [22.5166, 82.624],
+            "Mahasamund": [21.1846, 82.6294],
+            "Raigarh": [18.492, 73.244],
+            "Surguja": [23.3658, 83.2808],
+            "North Goa": [15.5327, 73.9833],
+            "South Goa": [15.1926, 74.0512],
+            "Ahmadabad": [22.759, 72.2353],
+            "Amreli": [21.4262, 71.2486],
+            "Anand": [22.4669, 72.7942],
+            "Banas Kantha": [24.2657, 72.1514],
+            "Bharuch": [21.8336, 73.0067],
+            "Bhavnagar": [21.6721, 71.8985],
+            "Gandhinagar": [23.2113, 72.6909],
+            "Jamnagar": [22.3273, 69.8069],
+            "Junagadh": [21.1896, 70.6108],
+            "Kachchh": [23.7043, 69.9568],
+            "Kheda": [22.8939, 73.0486],
+            "Mahesana": [23.5658, 72.4188],
+            "Narmada": [21.6884, 73.6494],
+            "Navsari": [20.8255, 73.1151],
+            "Panch Mahals": [22.872, 73.6456],
+            "Patan": [23.7683, 71.7903],
+            "Porbandar": [21.5874, 69.7827],
+            "Rajkot": [22.3442, 70.7857],
+            "Sabar Kantha": [23.7771, 73.1954],
+            "Surat": [21.1903, 73.4571],
+            "Surendranagar": [22.8235, 71.5789],
+            "Vadodara": [22.315, 73.584],
+            "Valsad": [20.4328, 73.1192],
+            "Ambala": [30.3818, 76.9216],
+            "Bhiwani": [28.7362, 75.9613],
+            "Faridabad": [28.1815, 77.304],
+            "Fatehabad": [29.5387, 75.5817],
+            "Jhajjar": [28.5985, 76.6151],
+            "Jind": [29.4548, 76.3352],
+            "Kaithal": [29.8606, 76.4551],
+            "Karnal": [29.7206, 76.8465],
+            "Kurukshetra": [30.0574, 76.8428],
+            "Panchkula": [30.7275, 76.9625],
+            "Panipat": [29.3318, 76.8894],
+            "Rewari": [28.2022, 76.5769],
+            "Rohtak": [28.8973, 76.551],
+            "Sirsa": [29.6097, 74.8788],
+            "Hisar": [29.2432, 75.7812],
+            "Solan": [31.061, 76.9137],
+            "Chamba": [32.6953, 76.327],
+            "Shimla": [31.2438, 77.6384],
+            "Hamirpur": [25.7864, 79.8483],
+            "Kangra": [32.0805, 76.3215],
+            "Kinnaur": [31.5987, 78.3659],
+            "Kullu": [31.882, 77.3879],
+            "Mandi": [31.6546, 76.9911],
+            "Sirmaur": [30.7055, 77.4085],
+            "Una": [31.585, 76.1934],
+            "Pulwama": [33.8471, 74.9831],
+            "Jammu": [32.7287, 74.8736],
+            "Srinagar": [34.2516, 75.1323],
+            "Doda": [33.5379, 75.9895],
+            "Kathua": [32.5723, 75.5614],
+            "Udhampur": [33.067, 75.237],
+            "Bokaro": [23.6933, 86.0216],
+            "Chatra": [24.1034, 84.8913],
+            "Deoghar": [24.3314, 86.7589],
+            "Dhanbad": [23.8433, 86.4641],
+            "Dumka": [24.3106, 87.288],
+            "Garhwa": [24.0503, 83.6929],
+            "Giridih": [24.3328, 86.1165],
+            "Godda": [24.8639, 87.2808],
+            "Gumla": [23.1572, 84.5194],
+            "Jamtara": [23.981, 86.8797],
+            "Koderma": [24.5542, 85.6734],
+            "Latehar": [23.6856, 84.4623],
+            "Lohardaga": [23.4769, 84.6635],
+            "Pakur": [24.5312, 87.6489],
+            "Palamu": [24.1898, 84.1933],
+            "Ranchi": [23.141, 85.3792],
+            "Saraikela Kharsawan": [22.8155, 85.8746],
+            "Simdega": [22.5854, 84.5371],
+            "Bengaluru Urban": [12.9358, 77.5739],
+            "Bidar": [18.018, 77.172],
+            "Chitradurga": [14.2996, 76.5214],
+            "Dharwad": [15.367, 75.1444],
+            "Gadag": [15.4119, 75.6608],
+            "Hassan": [13.0239, 76.0914],
+            "Haveri": [14.7137, 75.4197],
+            "Kodagu": [12.3754, 75.7743],
+            "Kolar": [13.3516, 77.9664],
+            "Koppal": [15.5701, 76.2915],
+            "Mandya": [12.6289, 76.8252],
+            "Raichur": [16.0498, 76.9133],
+            "Udupi": [13.4805, 74.892],
+            "Alappuzha": [9.4949, 76.4751],
+            "Ernakulam": [9.9816, 76.2999],
+            "Idukki": [9.8043, 77.0071],
+            "Kannur": [11.982, 75.5519],
+            "Kasaragod": [12.4203, 75.1485],
+            "Kollam": [8.9583, 76.8597],
+            "Kottayam": [9.6217, 76.6698],
+            "Kozhikode": [11.4615, 75.8336],
+            "Malappuram": [11.0992, 76.1829],
+            "Palakkad": [10.7791, 76.4582],
+            "Thiruvananthapuram": [8.5749, 76.9709],
+            "Thrissur": [10.472, 76.4244],
+            "Wayanad": [11.7067, 76.1039],
+            "Anuppur": [23.1503, 81.8605],
+            "Ashoknagar": [24.6234, 77.87],
+            "Balaghat": [21.8589, 80.2731],
+            "Barwani": [21.7544, 75.0331],
+            "Betul": [21.8819, 77.7989],
+            "Bhind": [26.3552, 78.6689],
+            "Bhopal": [23.4966, 77.4057],
+            "Burhanpur": [21.3377, 76.3701],
+            "Chhatarpur": [24.7657, 79.7028],
+            "Chhindwara": [22.141, 78.8234],
+            "Damoh": [23.8, 79.4999],
+            "Datia": [25.9235, 78.5479],
+            "Dewas": [22.8102, 76.5115],
+            "Dhar": [22.5808, 75.0943],
+            "Dindori": [22.8068, 81.1024],
+            "Guna": [24.5045, 77.2655],
+            "Gwalior": [26.0344, 78.1527],
+            "Harda": [22.2479, 77.1394],
+            "Indore": [22.7145, 75.8336],
+            "Jabalpur": [23.151, 79.9611],
+            "Jhabua": [22.5833, 74.5245],
+            "Katni": [23.7205, 80.372],
+            "Mandla": [22.6896, 80.4727],
+            "Mandsaur": [24.2647, 75.4026],
+            "Morena": [26.3908, 77.8222],
+            "Neemuch": [24.6498, 75.1607],
+            "Panna": [24.4523, 80.2002],
+            "Raisen": [23.2711, 78.0833],
+            "Rajgarh": [23.8724, 76.7122],
+            "Ratlam": [23.5056, 75.1039],
+            "Rewa": [24.7598, 81.6688],
+            "Sagar": [23.8132, 78.6994],
+            "Satna": [24.5818, 80.8653],
+            "Seoni": [22.2738, 79.7389],
+            "Shahdol": [23.4655, 81.4843],
+            "Shajapur": [23.7203, 76.3663],
+            "Sheopur": [25.7502, 77.0695],
+            "Shivpuri": [25.3808, 77.7338],
+            "Sidhi": [24.2453, 82.0531],
+            "Sehore": [23.1264, 77.2365],
+            "Tikamgarh": [25.002, 78.8847],
+            "Ujjain": [23.2981, 75.6918],
+            "Umaria": [23.6461, 80.892],
+            "Vidisha": [23.851, 77.7742],
+            "Ahmednagar": [19.1595, 74.5874],
+            "Akola": [20.7636, 77.1399],
+            "Amravati": [21.1561, 77.5356],
+            "Bhandara": [21.1211, 80.0585],
+            "Chandrapur": [20.0946, 79.3926],
+            "Dhule": [21.1337, 74.5323],
+            "Hingoli": [19.5422, 77.0829],
+            "Jalgaon": [20.844, 75.5814],
+            "Jalna": [19.9626, 76.0616],
+            "Kolhapur": [16.4591, 74.2025],
+            "Latur": [18.3518, 76.7491],
+            "Mumbai": [19.076, 72.8777],
+            "Nagpur": [21.1521, 78.9507],
+            "Nanded": [19.0955, 77.6499],
+            "Nandurbar": [21.5121, 74.1818],
+            "Nashik": [20.2263, 74.1003],
+            "Parbhani": [19.3081, 76.6637],
+            "Pune": [18.6432, 74.25],
+            "Ratnagiri": [17.2803, 73.4516],
+            "Sangli": [17.1705, 74.6919],
+            "Satara": [17.6363, 74.2273],
+            "Sindhudurg": [16.1329, 73.7638],
+            "Solapur": [17.8335, 75.5214],
+            "Thane": [19.6449, 73.2284],
+            "Wardha": [20.8254, 78.6351],
+            "Washim": [20.304, 77.1465],
+            "Yavatmal": [20.064, 78.2142],
+            "Bishnupur": [24.5163, 93.8019],
+            "Chandel": [24.2418, 94.0759],
+            "Churachandpur": [24.3297, 93.428],
+            "Senapati": [25.1089, 94.0802],
+            "Tamenglong": [24.9816, 93.5526],
+            "Thoubal": [24.4869, 93.9982],
+            "Ukhrul": [25.0936, 94.4366],
+            "Aizawl": [23.8623, 92.9175],
+            "Champhai": [23.5456, 93.2257],
+            "Kolasib": [24.2385, 92.7166],
+            "Lawngtlai": [22.3695, 92.7368],
+            "Lunglei": [22.9531, 92.7647],
+            "Mamit": [23.7559, 92.468],
+            "Serchhip": [23.3123, 92.9375],
+            "Dimapur": [25.8051, 93.7721],
+            "Kohima": [25.6157, 93.8104],
+            "Mokokchung": [26.4831, 94.5261],
+            "Mon": [26.666, 95.0139],
+            "Phek": [25.6513, 94.5476],
+            "Tuensang": [26.1973, 94.8754],
+            "Wokha": [26.2447, 94.173],
+            "Zunheboto": [26.0293, 94.4666],
+            "Baleshwar": [21.5142, 86.9174],
+            "Bhadrak": [20.978, 86.6442],
+            "Boudh": [20.639, 84.1774],
+            "Cuttack": [20.3623, 85.5618],
+            "Deogarh": [21.4335, 84.8411],
+            "Dhenkanal": [20.8292, 85.5685],
+            "Gajapati": [19.1863, 84.1145],
+            "Ganjam": [19.625, 84.6518],
+            "Jharsuguda": [21.7985, 83.9031],
+            "Kalahandi": [19.813, 83.1522],
+            "Kandhamal": [20.1265, 84.0345],
+            "Kendrapara": [20.5428, 86.6701],
+            "Khordha": [20.0472, 85.5033],
+            "Koraput": [18.731, 82.7464],
+            "Malkangiri": [18.2677, 81.912],
+            "Mayurbhanj": [21.9118, 86.4189],
+            "Nayagarh": [20.2324, 84.9648],
+            "Nabarangpur": [19.6216, 82.343],
+            "Nuapada": [20.5363, 82.5897],
+            "Puri": [19.825, 85.7296],
+            "Rayagada": [19.4339, 83.4479],
+            "Sundargarh": [22.0567, 84.4518],
+            "Sambalpur": [21.5523, 84.2795],
+            "Sonepur": [20.8485, 83.8595],
+            "Amritsar": [31.5681, 74.9462],
+            "Gurdaspur": [32.0856, 75.4046],
+            "Bathinda": [30.1796, 74.9945],
+            "Jalandhar": [31.2943, 75.5023],
+            "Ludhiana": [30.7922, 75.8401],
+            "Faridkot": [30.599, 74.7519],
+            "Fatehgarh Sahib": [30.665, 76.3229],
+            "Patiala": [30.2411, 76.4515],
+            "Hoshiarpur": [31.6087, 75.8994],
+            "Kapurthala": [31.386, 75.4169],
+            "Mansa": [29.8791, 75.4618],
+            "Moga": [30.7932, 75.151],
+            "Rupnagar": [31.0071, 76.5621],
+            "Sangrur": [30.2108, 75.7189],
+            "Ajmer": [26.3162, 74.6286],
+            "Alwar": [27.6438, 76.6597],
+            "Banswara": [23.4949, 74.3758],
+            "Baran": [24.923, 76.816],
+            "Barmer": [25.5754, 71.4723],
+            "Bharatpur": [27.2672, 77.3141],
+            "Bhilwara": [25.4915, 74.7365],
+            "Bikaner": [28.1186, 73.0419],
+            "Bundi": [25.4433, 75.7912],
+            "Churu": [28.2068, 74.6494],
+            "Dausa": [26.81, 76.6117],
+            "Dungarpur": [23.6787, 73.8732],
+            "Jodhpur": [26.7336, 72.8303],
+            "Ganganagar": [29.4531, 73.4818],
+            "Hanumangarh": [29.367, 74.7398],
+            "Jaipur": [27.156, 75.5994],
+            "Jaisalmer": [26.9479, 70.9127],
+            "Jhalawar": [24.3186, 76.2004],
+            "Karauli": [26.5013, 76.9164],
+            "Kota": [25.1958, 76.0995],
+            "Nagaur": [27.0594, 74.238],
+            "Pali": [25.6103, 73.5894],
+            "Pratapgarh": [25.8771, 81.8733],
+            "Rajsamand": [25.2682, 73.8982],
+            "Sawai Madhopur": [26.2003, 76.4709],
+            "Sikar": [27.6652, 75.3826],
+            "Sirohi": [24.8064, 72.7087],
+            "Tonk": [26.1244, 75.716],
+            "Udaipur": [24.4577, 73.7961],
+            "Ariyalur": [11.1377, 79.2102],
+            "Chennai": [13.0827, 80.2707],
+            "Coimbatore": [11.0168, 76.9558],
+            "Cuddalore": [11.5044, 79.3375],
+            "Dharmapuri": [12.3196, 78.0985],
+            "Dindigul": [10.4152, 77.7873],
+            "Erode": [11.2697, 77.3731],
+            "Kanniyakumari": [8.3238, 77.3329],
+            "Karur": [10.8089, 78.1538],
+            "Madurai": [9.9251, 77.9512],
+            "Nagapattinam": [10.846, 79.6886],
+            "Namakkal": [11.2909, 78.0718],
+            "Perambalur": [11.2732, 78.8863],
+            "Pudukkottai": [10.2754, 78.8505],
+            "Ramanathapuram": [9.5063, 78.8637],
+            "Salem": [11.6331, 78.2341],
+            "Sivaganga": [9.9504, 78.5524],
+            "Thanjavur": [10.6454, 79.1598],
+            "Theni": [9.8569, 77.4329],
+            "Thiruvallur": [13.2353, 79.8101],
+            "Tiruvannamalai": [12.4137, 79.1816],
+            "Thiruvarur": [10.6374, 79.5396],
+            "Vellore": [12.721, 79.0865],
+            "Villupuram": [11.9631, 79.3103],
+            "Virudhunagar": [9.4808, 77.8621],
+            "Hyderabad": [17.3844, 78.4593],
+            "Karimnagar": [18.523, 79.4269],
+            "Khammam": [17.6955, 80.7898],
+            "Nizamabad": [18.5382, 78.0966],
+            "Warangal": [17.9591, 79.7404],
+            "Adilabad": [19.2982, 78.8652],
+            "Medak": [17.8495, 78.2845],
+            "Nalgonda": [17.0839, 79.3385],
+            "Dhalai": [23.8421, 91.9598],
+            "West Tripura": [23.7522, 91.4707],
+            "North Tripura": [24.0956, 92.1195],
+            "South Tripura": [23.354, 91.6089],
+            "Agra": [27.024, 78.1301],
+            "Aligarh": [27.8793, 78.0402],
+            "Ambedkar Nagar": [26.4101, 82.6686],
+            "Auraiya": [26.6608, 79.3983],
+            "Azamgarh": [26.0463, 83.0792],
+            "Baghpat": [29.0417, 77.3001],
+            "Bahraich": [27.7367, 81.4143],
+            "Ballia": [25.878, 84.1496],
+            "Balrampur": [27.449, 82.3859],
+            "Banda": [25.4592, 80.5635],
+            "Bara Banki": [26.9438, 81.3852],
+            "Bareilly": [28.4595, 79.3677],
+            "Basti": [26.7822, 82.5912],
+            "Bijnor": [29.4157, 78.4523],
+            "Bulandshahr": [28.3971, 78.0306],
+            "Chandauli": [25.1253, 83.2753],
+            "Chitrakoot": [25.2202, 81.1182],
+            "Deoria": [26.4265, 83.8261],
+            "Etah": [27.6828, 78.7181],
+            "Etawah": [26.7494, 79.0372],
+            "Fatehpur": [25.8377, 80.7674],
+            "Firozabad": [27.1994, 78.3827],
+            "Lucknow": [26.8353, 80.88],
+            "Ghaziabad": [28.7418, 77.6966],
+            "Ghazipur": [25.6024, 83.5056],
+            "Gonda": [27.115, 82.052],
+            "Gorakhpur": [26.612, 83.3622],
+            "Hardoi": [27.3415, 80.248],
+            "Hathras": [27.5579, 78.1942],
+            "Jalaun": [26.1114, 79.4361],
+            "Jaunpur": [25.7975, 82.5971],
+            "Jhansi": [25.5331, 78.8535],
+            "Kannauj": [27.0034, 79.6605],
+            "Kanpur Dehat": [26.4443, 79.9804],
+            "Kaushambi": [25.5383, 81.5228],
+            "Kushinagar": [26.9256, 83.9665],
+            "Lalitpur": [24.7031, 78.5756],
+            "Mahoba": [25.365, 79.7057],
+            "Mainpuri": [27.2059, 79.0555],
+            "Mathura": [27.6048, 77.6236],
+            "Mau": [26.0407, 83.4866],
+            "Meerut": [29.0049, 77.7854],
+            "Mirzapur": [24.9376, 82.6257],
+            "Moradabad": [28.8139, 78.6756],
+            "Muzaffarnagar": [29.4504, 77.6052],
+            "Pilibhit": [28.5072, 80.0052],
+            "Rae Bareli": [26.2119, 81.1387],
+            "Rampur": [28.7816, 79.115],
+            "Saharanpur": [29.9894, 77.5222],
+            "Sant Kabir Nagar": [26.7308, 83.0181],
+            "Shahjahanpur": [27.9701, 79.8406],
+            "Sitapur": [27.5081, 80.8509],
+            "Sonbhadra": [24.3901, 83.0301],
+            "Sultanpur": [26.3222, 82.1059],
+            "Unnao": [26.5775, 80.5419],
+            "Varanasi": [25.376, 82.9244],
+            "Almora": [29.7103, 79.5419],
+            "Bageshwar": [30.0057, 79.8019],
+            "Chamoli": [30.5063, 79.5533],
+            "Champawat": [29.2921, 80.0532],
+            "Haridwar": [29.8983, 78.0169],
+            "Pauri Garhwal": [29.8865, 78.7011],
+            "Pithoragarh": [30.1259, 80.4144],
+            "Rudra Prayag": [30.5533, 79.1191],
+            "Tehri Garhwal": [30.4717, 78.4866],
+            "Bankura": [23.1304, 87.1835],
+            "North 24 Parganas": [22.3999, 88.7137],
+            "Birbhum": [24.06, 87.5537],
+            "Dakshin Dinajpur": [25.3818, 88.5945],
+            "Jalpaiguri": [26.6645, 89.1339],
+            "Kolkata": [22.5623, 88.339],
+            "Murshidabad": [24.2863, 88.2759],
+            "Nadia": [23.4852, 88.4667],
+            "Uttar Dinajpur": [25.8698, 88.1644],
+            "South 24 Parganas": [22.0808, 88.418],
+            "Chandigarh": [30.7342, 76.7635],
+            "Dadra And Nagar Haveli": [20.2062, 73.0757],
+            "Daman": [20.4198, 72.8484],
+            "East": [27.2801, 88.6795],
+            "Karaikal": [10.9001, 79.7787],
+            "Pondicherry": [11.9416, 79.8083],
+            "Mahendragarh": [28.1397, 76.1387],
+            "Kargil": [33.776, 76.5011],
+            "East Garo Hills": [25.7152, 90.5701],
+            "South Garo Hills": [25.3493, 90.6186],
+            "East Khasi Hills": [25.4045, 91.7559],
+            "West Khasi Hills": [25.5125, 91.2894],
+            "Purnia": [25.7794, 87.4221],
+            "Lahul And Spiti": [32.5034, 77.5047],
+            "West Garo Hills": [25.577, 90.1314],
+            "Farrukhabad": [27.4423, 79.4256],
+            "Gautam Buddha Nagar": [28.3842, 77.5234]
+        };
+
+        function mulberry32(seed) {
+            return function () {
+                let t = seed += 0x6D2B79F5;
+                t = Math.imul(t ^ t >>> 15, t | 1);
+                t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            }
+        }
+
+        function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
+        function formatInt(n) { return (n ?? 0).toLocaleString('en-IN'); }
+        function formatPct(n) {
+            if (!isFinite(n)) return "—";
+            const s = (n >= 0 ? "+" : "") + n.toFixed(1) + "%";
+            return s;
+        }
+
+        // Synthetic population baseline per state (for "rate index")
+        const STATE_POP = {};
+        (function initPop() {
+            const rng = mulberry32(42);
+            Object.keys(STATE_DISTRICTS).forEach((s, i) => {
+                // 10M - 220M
+                STATE_POP[s] = Math.round((10 + rng() * 210) * 1e6);
+            });
+        })();
+
+        // Will be populated dynamically by Python Backend API
+        let DATA = [];
+        let FUTURE_DATA = [];
+        const predictionCache = new Map();
+        let predictionRequestToken = 0;
+
+        // -----------------------------
+        // State
+        // -----------------------------
+        const state = {
+            filters: {
+                state: "__all__",
+                district: "__all__",
+                crimeType: "__all__",
+                yearFrom: YEARS[0],
+                yearTo: YEARS[YEARS.length - 1]
+            },
+            topMode: "state", // or "district"
+            sort: { key: "Total", dir: "desc" },
+            page: 1,
+            pageSize: 18,
+            tableSearch: ""
+        };
+
+        // -----------------------------
+        // DOM helpers
+        // -----------------------------
+        const $ = (sel, root = document) => root.querySelector(sel);
+        const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+        const setTxt = (sel, txt) => { const el = $(sel); if (el) el.textContent = txt; };
+        const formatCrimeLabel = (key) => String(key ?? "")
+            .replaceAll("_", " ")
+            .replace(/\s+/g, " ")
+            .trim()
+            .replace(/\b\w/g, (m) => m.toUpperCase());
+        const formatSignedInt = (n) => `${n >= 0 ? "+" : "−"}${formatInt(Math.abs(n))}`;
+        const getActualRows = () => DATA.filter((row) => !row.IsProjected);
+        const getAllRows = () => ($("#predictionToggle")?.checked ? DATA.concat(FUTURE_DATA) : DATA);
+
+        const getPredictionCacheKey = (scope, year) => `${scope}::${year}`;
+
+        async function fetchPrediction(scope, targetYear) {
+            const normalizedScope = scope === "__all__" ? "all" : scope;
+            const key = getPredictionCacheKey(normalizedScope, targetYear);
+            if (predictionCache.has(key)) return predictionCache.get(key);
+
+            const result = await window.ApiClient.getPrediction(normalizedScope, targetYear);
+            if (result) predictionCache.set(key, result);
+            return result;
+        }
+
+        async function populateDistrictSelect(selectEl, selectedState, desiredDistrict = "__all__") {
+            if (!selectEl) return;
+
+            selectEl.innerHTML = "";
+            const all = document.createElement("option");
+            all.value = "__all__";
+            all.textContent = "All districts";
+            selectEl.appendChild(all);
+
+            let districts = [];
+            try {
+                districts = await window.ApiClient.getDistricts(selectedState === "__all__" ? "all" : selectedState);
+            } catch (e) {
+                districts = [];
+            }
+
+            if (!districts.length) {
+                districts = (selectedState === "__all__")
+                    ? Array.from(new Set(DATA.map((d) => d.District))).sort()
+                    : Array.from(new Set(DATA.filter((r) => r.State === selectedState).map((r) => r.District))).sort();
+            }
+
+            for (const district of districts) {
+                const opt = document.createElement("option");
+                opt.value = district;
+                opt.textContent = district;
+                selectEl.appendChild(opt);
+            }
+
+            if ([...selectEl.options].some((o) => o.value === desiredDistrict)) {
+                selectEl.value = desiredDistrict;
+            } else {
+                selectEl.value = "__all__";
+            }
+        }
+
+        async function refreshPredictionUI() {
+            const predictionEl = $("#kpiPrediction");
+            const modelEl = $("#predictModel");
+            const predToggle = $("#predictionToggle");
+            const input = $("#predictInputYear");
+            const deltaEl = $("#predictDelta");
+            const confidenceEl = $("#predictConfidence");
+            const trendEl = $("#predictTrend");
+            const narrativeEl = $("#predictNarrative");
+            const supportEl = $("#predictSupport");
+            const componentsEl = $("#predictComponents");
+            const stabilityEl = $("#predictStability");
+
+            if (!predictionEl || !modelEl || !predToggle || !input) return;
+
+            const maxHistYear = DATA && DATA.length > 0 ? Math.max(...DATA.map((d) => parseInt(d.Year, 10))) : 2022;
+            const targetYear = Math.max(parseInt(input.value || `${maxHistYear + 1}`, 10), maxHistYear + 1);
+            if (parseInt(input.value, 10) !== targetYear) input.value = targetYear;
+
+            if (!predToggle.checked) {
+                predictionEl.textContent = "—";
+                modelEl.textContent = "Forecast disabled";
+                if (deltaEl) deltaEl.textContent = "—";
+                if (confidenceEl) confidenceEl.textContent = "—";
+                if (trendEl) trendEl.textContent = "Enable the forecast horizon to compare beyond actual data.";
+                if (narrativeEl) narrativeEl.textContent = "Forecast rows are currently hidden. Turn on the forecast switch to extend district-level modeled data through 2025.";
+                if (supportEl) supportEl.textContent = "Historical mode";
+                if (componentsEl) componentsEl.textContent = "Model components hidden while forecast mode is disabled.";
+                if (stabilityEl) stabilityEl.textContent = "Model stability —";
+                return;
+            }
+
+            const requestToken = ++predictionRequestToken;
+            predictionEl.textContent = "…";
+            modelEl.textContent = "Computing forecast";
+            if (deltaEl) deltaEl.textContent = "…";
+            if (confidenceEl) confidenceEl.textContent = "…";
+            if (trendEl) trendEl.textContent = "Recomputing direction";
+            if (narrativeEl) narrativeEl.textContent = "The forecast engine is evaluating historical trend slope and recent volatility for the active scope.";
+            if (supportEl) supportEl.textContent = "Calibrating…";
+            if (componentsEl) componentsEl.textContent = "Collecting ensemble outputs…";
+            if (stabilityEl) stabilityEl.textContent = "Model stability —";
+
+            try {
+                const prediction = await fetchPrediction(state.filters.state, targetYear);
+                if (requestToken !== predictionRequestToken) return;
+
+                if (prediction) {
+                    predictionEl.textContent = formatInt(prediction.predicted_crimes);
+                    modelEl.textContent = prediction.model_used || "Forecast model";
+                    if (deltaEl) {
+                        deltaEl.textContent = formatSignedInt(prediction.delta_from_last_year || 0);
+                        deltaEl.className = `mt-3 text-2xl font-semibold ${prediction.delta_from_last_year >= 0 ? 'text-rose-300' : 'text-emerald-300'}`;
+                    }
+                    if (confidenceEl) confidenceEl.textContent = `${formatInt(prediction.confidence_low || 0)} – ${formatInt(prediction.confidence_high || 0)}`;
+                    if (trendEl) {
+                        const pct = prediction.pct_change_from_last_year || 0;
+                        trendEl.textContent = `${pct >= 0 ? "Projected increase" : "Projected decrease"} of ${formatPct(pct)} vs ${prediction.historical_context?.last_year || maxHistYear}`;
+                    }
+                    if (stabilityEl) {
+                        const stability = prediction.quality?.stability || "moderate";
+                        stabilityEl.textContent = `Model stability: ${formatCrimeLabel(stability)}`;
+                    }
+                    if (supportEl) {
+                        const historyPoints = prediction.quality?.history_points || 0;
+                        supportEl.textContent = `${historyPoints} yearly observations`;
+                    }
+                    if (componentsEl) {
+                        const components = Object.entries(prediction.ensemble_components || {})
+                            .map(([name, value]) => `${name}: ${formatInt(value)}`)
+                            .join(" • ");
+                        componentsEl.textContent = components || "Single-model forecast";
+                    }
+                    if (narrativeEl) {
+                        const scopeLabel = state.filters.state === "__all__" ? "all-state national scope" : `${state.filters.state} scope`;
+                        const lastYear = prediction.historical_context?.last_year;
+                        const lastYearCrimes = prediction.historical_context?.last_year_crimes || 0;
+                        narrativeEl.textContent = `For ${scopeLabel}, the engine projects ${formatInt(prediction.predicted_crimes)} incidents in ${prediction.target_year}. That is ${formatSignedInt(prediction.delta_from_last_year || 0)} relative to ${lastYear} (${formatInt(lastYearCrimes)}), with a working band of ${formatInt(prediction.confidence_low || 0)} to ${formatInt(prediction.confidence_high || 0)}.`;
+                    }
+                } else {
+                    predictionEl.textContent = "—";
+                    modelEl.textContent = "Unavailable";
+                    if (deltaEl) deltaEl.textContent = "—";
+                    if (confidenceEl) confidenceEl.textContent = "—";
+                    if (trendEl) trendEl.textContent = "Forecast unavailable for the current scope.";
+                    if (narrativeEl) narrativeEl.textContent = "The forecast service returned no usable result for this scope.";
+                    if (supportEl) supportEl.textContent = "Unavailable";
+                    if (componentsEl) componentsEl.textContent = "No component outputs returned.";
+                    if (stabilityEl) stabilityEl.textContent = "Model stability —";
+                }
+            } catch (e) {
+                if (requestToken !== predictionRequestToken) return;
+                predictionEl.textContent = "—";
+                modelEl.textContent = "Unavailable";
+                if (deltaEl) deltaEl.textContent = "—";
+                if (confidenceEl) confidenceEl.textContent = "—";
+                if (trendEl) trendEl.textContent = "Forecast unavailable for the current scope.";
+                if (narrativeEl) narrativeEl.textContent = "A forecast error occurred while evaluating the active selection.";
+                if (supportEl) supportEl.textContent = "Unavailable";
+                if (componentsEl) componentsEl.textContent = "No component outputs returned.";
+                if (stabilityEl) stabilityEl.textContent = "Model stability —";
+            }
+        }
+
+        // -----------------------------
+        // Populate selects
+        // -----------------------------
+        async function initFilters() {
+            const stateSelect = $("#stateSelect");
+            const districtSelect = $("#districtSelect");
+            const crimeTypeSelect = $("#crimeTypeSelect");
+            const yFrom = $("#yearFromSelect");
+            const yTo = $("#yearToSelect");
+
+            yFrom.innerHTML = "";
+            yTo.innerHTML = "";
+
+            // Extract boundaries from real Python DATA array
+            if (DATA && DATA.length > 0) {
+                const datasetYears = Array.from(new Set(DATA.map(d => parseInt(d.Year)))).sort((a, b) => a - b);
+                if (datasetYears.length > 0) {
+                    const allYears = new Set([...datasetYears, ...PROJECTED_YEARS]);
+                    YEARS = Array.from(allYears).sort((a, b) => a - b);
+                }
+            }
+
+            // Update filter defaults to match valid dataset years
+            const maxHistYear = DATA && DATA.length > 0 ? Math.max(...DATA.map(d => parseInt(d.Year))) : 2022;
+            state.filters.yearFrom = YEARS[0];
+            state.filters.yearTo = maxHistYear;
+
+            // states
+            const states = Array.from(new Set(DATA.map(d => d.State))).sort();
+            stateSelect.innerHTML = '<option value="__all__">All states</option>';
+            for (const s of states) {
+                const opt = document.createElement("option");
+                opt.value = s; opt.textContent = s;
+                stateSelect.appendChild(opt);
+            }
+
+            // crime types — dynamically loaded from real dataset columns via API
+            crimeTypeSelect.innerHTML = "";
+            const totalOpt = document.createElement("option");
+            totalOpt.value = "__all__";
+            totalOpt.textContent = "All crimes (Total)";
+            crimeTypeSelect.appendChild(totalOpt);
+
+            const groupOptGroup = document.createElement("optgroup");
+            groupOptGroup.label = "Crime Groups";
+            for (const groupName of Object.keys(CRIME_GROUPS)) {
+                const opt = document.createElement("option");
+                opt.value = groupName;
+                opt.textContent = groupName;
+                groupOptGroup.appendChild(opt);
+            }
+            crimeTypeSelect.appendChild(groupOptGroup);
+
+            const individualOptGroup = document.createElement("optgroup");
+            individualOptGroup.label = "Individual Crimes";
+            let crimeTypeData = [];
+            try {
+                crimeTypeData = await window.ApiClient.getCrimeTypes();
+            } catch (e) {
+                crimeTypeData = [];
+            }
+
+            if (!crimeTypeData.length && DATA.length) {
+                const exclude = new Set(["State", "District", "Year", "Total"]);
+                crimeTypeData = Object.keys(DATA[0])
+                    .filter((key) => !exclude.has(key) && typeof DATA[0][key] === "number")
+                    .map((key) => ({ key, label: formatCrimeLabel(key) }));
+            }
+
+            CRIME_TYPES = crimeTypeData.map((ct) => ct.key);
+            for (const ct of crimeTypeData) {
+                const opt = document.createElement("option");
+                opt.value = ct.key;
+                opt.textContent = ct.label;
+                individualOptGroup.appendChild(opt);
+            }
+            crimeTypeSelect.appendChild(individualOptGroup);
+
+
+            // years
+            for (const y of YEARS) {
+                const o1 = document.createElement("option");
+                o1.value = y; o1.textContent = y;
+                yFrom.appendChild(o1);
+
+                const o2 = document.createElement("option");
+                o2.value = y; o2.textContent = y;
+                yTo.appendChild(o2);
+            }
+
+            // defaults
+            yFrom.value = state.filters.yearFrom;
+            yTo.value = state.filters.yearTo;
+
+            // district based on state
+            async function refreshDistricts() {
+                const selectedState = stateSelect.value;
+                await populateDistrictSelect(districtSelect, selectedState, state.filters.district);
+                if (districtSelect.value !== state.filters.district) {
+                    state.filters.district = districtSelect.value;
+                }
+            }
+
+            stateSelect.addEventListener("change", () => {
+                state.filters.district = "__all__";
+                void refreshDistricts();
+            });
+            await refreshDistricts();
+        }
+
+        // -----------------------------
+        // Filtering & aggregation
+        // -----------------------------
+        function applyCurrentFilters() {
+            const f = state.filters;
+            let rows = getAllRows().slice();
+
+            // years (ensure parsed as int for safety from JSON payload)
+            rows = rows.filter(r => parseInt(r.Year) >= parseInt(f.yearFrom) && parseInt(r.Year) <= parseInt(f.yearTo));
+            // state / district 
+            if (f.state !== "__all__") rows = rows.filter(r => r.State === f.state);
+            if (f.district !== "__all__") rows = rows.filter(r => r.District === f.district);
+
+            return rows;
+        }
+
+        function totalForRow(row, crimeType) {
+            if (crimeType === "__all__") return row.Total;
+            // Check if crimeType is a group
+            if (CRIME_GROUPS[crimeType]) {
+                return CRIME_GROUPS[crimeType].reduce((sum, type) => sum + (row[type] ?? 0), 0);
+            }
+            return row[crimeType] ?? 0;
+        }
+
+        function sumTotal(rows, crimeType) {
+            return rows.reduce((a, r) => a + totalForRow(r, crimeType), 0);
+        }
+
+        function groupBy(rows, key, crimeType) {
+            const m = new Map();
+            for (const r of rows) {
+                const k = r[key];
+                m.set(k, (m.get(k) ?? 0) + totalForRow(r, crimeType));
+            }
+            return m;
+        }
+
+        function seriesByYear(rows, crimeType) {
+            const m = new Map(YEARS.map((y) => [y, 0]));
+
+            for (const r of rows) {
+                m.set(r.Year, (m.get(r.Year) ?? 0) + totalForRow(r, crimeType));
+            }
+            // only selected range
+            const arr = [];
+            for (const y of YEARS) {
+                if (y < state.filters.yearFrom || y > state.filters.yearTo) continue;
+                arr.push({ year: y, value: m.get(y) ?? 0 });
+            }
+            return arr;
+        }
+
+        function crimeTypeDistribution(rows) {
+            const ctFilter = state.filters.crimeType;
+            let targetRows = rows;
+
+            const exclude = new Set(['State', 'District', 'Year', 'Total']);
+            const allCrimeKeys = targetRows.length > 0
+                ? Object.keys(targetRows[0]).filter(k => !exclude.has(k) && typeof targetRows[0][k] === 'number')
+                : CRIME_TYPES; // Fallback if data is empty
+
+            if (ctFilter === "__all__") {
+                // Aggregate by individual crime types
+                const dist = allCrimeKeys.map(ct => ({
+                    key: ct,
+                    label: formatCrimeLabel(ct),
+                    value: targetRows.reduce((a, r) => a + (r[ct] ?? 0), 0)
+                }));
+                dist.sort((a, b) => b.value - a.value);
+                return dist;
+            } else if (CRIME_GROUPS[ctFilter]) {
+                // If a crime group is selected, show distribution of its constituent crimes
+                const groupCrimes = CRIME_GROUPS[ctFilter];
+                const dist = groupCrimes.map(ct => ({
+                    key: ct,
+                    label: formatCrimeLabel(ct),
+                    value: targetRows.reduce((a, r) => a + (r[ct] ?? 0), 0)
+                }));
+                dist.sort((a, b) => b.value - a.value);
+                return dist.filter(d => d.value > 0); // Only show crimes with actual values
+            } else {
+                // If a specific individual crime is filtered, its distribution is just itself
+                const value = targetRows.reduce((a, r) => a + (r[ctFilter] ?? 0), 0);
+                return [{ key: ctFilter, label: formatCrimeLabel(ctFilter), value }];
+            }
+        }
+
+        function dominantCrime(rows) {
+            const ctFilter = state.filters.crimeType;
+            if (ctFilter !== "__all__" && !CRIME_GROUPS[ctFilter]) {
+                // If a specific individual crime is filtered, it IS the dominant crime of the filtered view
+                const value = sumTotal(rows, ctFilter);
+                return { key: ctFilter, label: formatCrimeLabel(ctFilter), value };
+            }
+
+            const dist = crimeTypeDistribution(rows);
+            return dist[0] ?? { key: "", label: "-", value: 0 };
+        }
+
+        function yoyForSelection(rows, crimeType) {
+            if (rows.length === 0) return { pct: NaN, delta: 0, a: 0, b: 0, y1: 0, y2: 0 };
+
+            // YoY should stay grounded in historical data even when forecast rows are visible.
+            const baselineRows = rows.some((r) => !r.IsProjected) ? rows.filter((r) => !r.IsProjected) : rows;
+            const maxYearInRows = Math.max(...baselineRows.map(r => parseInt(r.Year)));
+            const y2 = maxYearInRows;
+            const y1 = y2 - 1;
+
+            const f = state.filters;
+            if (y1 < parseInt(f.yearFrom)) return { pct: NaN, delta: 0, a: 0, b: 0, y1, y2 };
+
+            const a = sumTotal(baselineRows.filter(r => parseInt(r.Year) === y1), crimeType);
+            const b = sumTotal(baselineRows.filter(r => parseInt(r.Year) === y2), crimeType);
+            const pct = a === 0 ? NaN : ((b - a) / a) * 100;
+            return { pct, delta: b - a, a, b, y1, y2 };
+        }
+
+        function crimeRateIndex(rows, crimeType) {
+            // synthetic rate per 100k based on state population sum (or per selection)
+            const f = state.filters;
+            let pop = 0;
+            if (f.state !== "__all__") {
+                pop = STATE_POP[f.state] ?? 50e6;
+            } else {
+                const states = Array.from(new Set(rows.map(r => r.State)));
+                pop = states.reduce((a, s) => a + (STATE_POP[s] ?? 50e6), 0);
+            }
+            if (f.district !== "__all__") {
+                // approximate district share
+                pop = pop / 5; // since we used 5 districts/state in demo
+            }
+            const total = sumTotal(rows, crimeType);
+            const rate = pop ? (total / pop) * 100000 : 0;
+            return rate;
+        }
+
+        // -----------------------------
+        // Charts
+        // -----------------------------
+        let lineChart, barChart, pieChart, heroMiniLine;
+
+        function makeGradient(ctx, h, c1, c2) {
+            const g = ctx.createLinearGradient(0, 0, 0, h);
+            g.addColorStop(0, c1);
+            g.addColorStop(1, c2);
+            return g;
+        }
+
+        function chartDefaults() {
+            Chart.defaults.color = "#94a3b8"; // Slate 400
+            Chart.defaults.borderColor = "rgba(255,255,255,.06)";
+            Chart.defaults.font.family = "'Inter Tight', Inter, sans-serif";
+            Chart.defaults.plugins.legend.labels.boxWidth = 8;
+            Chart.defaults.plugins.legend.labels.boxHeight = 8;
+            Chart.defaults.plugins.legend.labels.usePointStyle = true;
+            Chart.defaults.plugins.tooltip.backgroundColor = "rgba(2, 6, 23, 0.95)";
+            Chart.defaults.plugins.tooltip.borderColor = "rgba(255,255,255,0.1)";
+            Chart.defaults.plugins.tooltip.borderWidth = 1;
+            Chart.defaults.plugins.tooltip.padding = 12;
+            Chart.defaults.plugins.tooltip.cornerRadius = 8;
+        }
+
+        function buildLineChart(series) {
+            const canvas = $("#lineChart");
+            if (!canvas) return;
+            const ctx = canvas.getContext("2d");
+            if (lineChart) lineChart.destroy();
+
+            lineChart = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: series.map(d => d.year),
+                    datasets: [{
+                        label: "Total Crimes",
+                        data: series.map(d => d.value),
+                        fill: true,
+                        backgroundColor: makeGradient(ctx, 220, "rgba(99, 102, 241, 0.25)", "rgba(99, 102, 241, 0)"),
+                        borderColor: "#818cf8", // Indigo 400
+                        borderWidth: 3,
+                        cubicInterpolationMode: 'monotone',
+                        pointBackgroundColor: (ctx) => {
+                            const year = ctx.raw?.x || series[ctx.dataIndex]?.year;
+                            return PROJECTED_YEARS.includes(year) ? "#f43f5e" : "#818cf8";
+                        },
+                        pointBorderColor: "#fff",
+                        pointRadius: (ctx) => {
+                            const year = ctx.raw?.x || series[ctx.dataIndex]?.year;
+                            return PROJECTED_YEARS.includes(year) ? 5 : 0;
+                        },
+                        pointHoverRadius: 6,
+                        segment: {
+                            borderDash: (ctx) => {
+                                // Dash the line overlap if approaching projected year
+                                // simpler: if p0 or p1 is projected
+                                const p0 = series[ctx.p0DataIndex]?.year;
+                                const p1 = series[ctx.p1DataIndex]?.year;
+                                if (PROJECTED_YEARS.includes(p1)) return [6, 6];
+                                return undefined;
+                            },
+                            borderColor: (ctx) => {
+                                const p1 = series[ctx.p1DataIndex]?.year;
+                                if (PROJECTED_YEARS.includes(p1)) return "#f43f5e"; // Rose for prediction
+                                return undefined;
+                            }
+                        },
+                        tension: 0.35
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: (ctx) => {
+                                    const year = parseInt(ctx[0].label);
+                                    return PROJECTED_YEARS.includes(year) ? `${year} (PROJECTION)` : year;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { ticks: { callback: (v) => (v >= 1000 ? (v / 1000).toFixed(1) + "k" : v) } }
+                    }
+                }
+            });
+        }
+
+        function buildBarChart(labels, values) {
+            const canvas = $("#barChart");
+            if (!canvas) return;
+            const ctx = canvas.getContext("2d");
+            if (barChart) barChart.destroy();
+            barChart = new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels,
+                    datasets: [{
+                        label: "Total",
+                        data: values,
+                        backgroundColor: "rgba(99, 102, 241, 0.4)",
+                        borderColor: "#818cf8",
+                        borderWidth: 1.5,
+                        borderRadius: 6,
+                        maxBarThickness: 32
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: "rgba(255,255,255,.75)" } },
+                        y: { ticks: { callback: (v) => (v >= 1000 ? (v / 1000).toFixed(1) + "k" : v) } }
+                    }
+                }
+            });
+        }
+
+        function buildPieChart(dist) {
+            const canvas = $("#pieChart");
+            if (!canvas) return;
+            const ctx = canvas.getContext("2d");
+            if (pieChart) pieChart.destroy();
+            const top = dist.slice(0, 6);
+            const rest = dist.slice(6).reduce((a, b) => a + b.value, 0);
+            const labels = top.map(d => d.label).concat(rest > 0 ? ["Others"] : []);
+            const values = top.map(d => d.value).concat(rest > 0 ? [rest] : []);
+            const colors = [
+                "#6366f1", // Indigo 500
+                "#818cf8", // Indigo 400
+                "#a5b4fc", // Indigo 300
+                "#10b981", // Emerald 500
+                "#34d399", // Emerald 400
+                "#fbbf24", // Amber 400
+                "#94a3b8"  // Slate 400
+            ];
+            pieChart = new Chart(ctx, {
+                type: "doughnut",
+                data: {
+                    labels, datasets: [{
+                        data: values, backgroundColor: colors, borderColor:
+                            "rgba(255,255,255,.10)", borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    onHover: (e, el) => {
+                        e.native.target.style.cursor = el[0] ? 'pointer' : 'default';
+                    },
+                    onClick: (e, el) => {
+                        if (el && el.length > 0) {
+                            const index = el[0].index;
+                            const label = labels[index];
+                            if (label !== "Others") {
+                                showCrimeDrillDown(top[index].key);
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: "right",
+                            labels: {
+                                padding: 10,
+                                font: { size: 10 }
+                            }
+                        }
+                    },
+                    cutout: "65%"
+                }
+            });
+        }
+
+        function buildHeroMini(series) {
+            const canvas = $("#heroMiniLine");
+            if (!canvas) return;
+            const ctx = canvas.getContext("2d");
+            const grad = makeGradient(ctx, 130, "rgba(220,38,38,.28)", "rgba(220,38,38,0)");
+            if (heroMiniLine) heroMiniLine.destroy();
+            heroMiniLine = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: series.map(d => d.year),
+                    datasets: [{
+                        data: series.map(d => d.value),
+                        fill: true,
+                        backgroundColor: grad,
+                        borderColor: "rgba(220,38,38,.85)",
+                        pointRadius: 0,
+                        tension: 0.35
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                    scales: {
+                        x: { display: false },
+                        y: { display: false }
+                    }
+                }
+            });
+        }
+
+        // -----------------------------
+        // Map
+        // -----------------------------
+
+        let map, mapLayerGroup;
+        function initMap() {
+            if (!document.getElementById("map")) return;
+            map = L.map('map', { zoomControl: true, scrollWheelZoom: false }).setView([22.5, 79], 4.6);
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap & CARTO'
+            }).addTo(map);
+
+            mapLayerGroup = L.layerGroup().addTo(map);
+
+            map.on("dblclick", () => {
+                state.filters.state = "__all__";
+                state.filters.district = "__all__";
+                $("#stateSelect").value = "__all__";
+                $("#districtSelect").value = "__all__";
+                render();
+            });
+        }
+
+        function intensityColor(v, max) {
+            const t = max ? clamp(v / max, 0, 1) : 0;
+            // Indigo scale: #c7d2fe (200) -> #4338ca (700)
+            const r = Math.round(199 + t * (67 - 199));
+            const g = Math.round(210 + t * (56 - 210));
+            const b = Math.round(254 + t * (202 - 254));
+            return `rgba(${r},${g},${b},${0.4 + 0.45 * t})`;
+        }
+
+        function renderMap(rows) {
+            if (!map || !mapLayerGroup) return;
+            mapLayerGroup.clearLayers();
+            const ct = state.filters.crimeType;
+
+            // Decision: State View vs District View
+            const isStateView = (state.filters.state === "__all__");
+
+            if (isStateView) {
+                // ------------------
+                // STATE BUBBLES
+                // ------------------
+                const byState = groupBy(rows, "State", ct);
+                const entries = Array.from(byState.entries());
+                const max = entries.reduce((m, [, v]) => Math.max(m, v), 0);
+
+                for (const [st, val] of entries) {
+                    const c = STATE_CENTROIDS[st];
+                    if (!c) continue;
+                    const radius = 90000 + (max ? (val / max) * 180000 : 90000);
+
+                    const circle = L.circle(c, {
+                        radius,
+                        color: "rgba(255,255,255,.20)",
+                        weight: 1,
+                        fillColor: intensityColor(val, max),
+                        fillOpacity: 0.95
+                    }).addTo(mapLayerGroup);
+
+                    circle.bindTooltip(
+                        `<div style="min-width:160px">
+                    <div style="font-weight:700; margin-bottom:2px">${st}</div>
+                    <div style="opacity:.85; font-size:12px">Total: <b>${formatInt(val)}</b></div>
+                    <div style="opacity:.75; font-size:11px; margin-top:4px; color:#a5b4fc">Click to drill down</div>
+                </div>`,
+                        { sticky: true, direction: "top" }
+                    );
+
+                    circle.on("click", () => {
+                        state.filters.state = st;
+                        state.filters.district = "__all__";
+                        $("#stateSelect").value = st;
+                        $("#stateSelect").dispatchEvent(new Event("change")); // trigger refresh
+                        render();
+                    });
+                }
+
+                // Reset view to India center
+                map.flyTo([22.5, 79], 4.6, { duration: 1.2 });
+
+            } else {
+                // ------------------
+                // DISTRICT BUBBLES (Drill down)
+                // ------------------
+                const selectedState = state.filters.state;
+                const center = STATE_CENTROIDS[selectedState];
+
+                // Center map on state
+                if (center) map.flyTo(center, 7, { duration: 1.2 });
+
+                // Group by district for the filtered rows (which are already filtered by state)
+                const byDistrict = groupBy(rows, "District", ct);
+                const entries = Array.from(byDistrict.entries());
+                const max = entries.reduce((m, [, v]) => Math.max(m, v), 0);
+
+                // Deterministic RNG for placement stability
+                const rng = mulberry32(selectedState.length * 42);
+
+                for (const [dist, val] of entries) {
+                    // Generate a pseudo-random position around the state center
+                    // In a real app, we'd have a DISTRICT_COORDINATES table.
+                    // Here, we scatter them within ~1.5 degrees of the state center.
+                    if (!center) continue;
+
+                    let lat, lng;
+                    if (DISTRICT_COORDINATES[dist]) {
+                        [lat, lng] = DISTRICT_COORDINATES[dist];
+                    } else {
+                        // Fallback: Generate a pseudo-random position around the state center
+
+                        // Create a stable hash from string to keep position constant across renders
+                        let hash = 0;
+                        for (let i = 0; i < dist.length; i++) hash = dist.charCodeAt(i) + ((hash << 5) - hash);
+                        const norm = (hash & 0xFFFFFF) / 0xFFFFFF; // 0..1 
+                        const angle = norm * 2 * Math.PI;
+                        const distOffset = 0.3 + (Math.abs(hash % 100) / 100) * 1.2; // 0.3 to 1.5 degrees 
+                        lat = center[0] + distOffset * Math.cos(angle);
+                        lng = center[1] + distOffset * Math.sin(angle);
+                    }
+
+                    const radius = 15000 + (max ? (val / max) * 40000 : 10000); // Smaller bubbles for districts
+                    const isActive = (state.filters.district === dist);
+
+                    const circle = L.circle([lat, lng], {
+                        radius,
+                        color: isActive ? "rgba(255,255,255,.9)" : "rgba(255,255,255,.3)",
+                        weight: isActive ? 3 : 1,
+                        fillColor: intensityColor(val, max),
+                        fillOpacity: 0.9
+                    }).addTo(mapLayerGroup);
+
+                    circle.bindTooltip(`<div style="min-width:140px">
+                    <div style="font-weight:700; margin-bottom:2px">${dist}</div>
+                    <div style="opacity:.85; font-size:12px">Total: <b>${formatInt(val)}</b></div>
+                    <div style="opacity:.65; font-size:10px; margin-top:2px">${state.filters.state}</div>
+                    </div>`,
+                        { sticky: true, direction: "top" }
+                    );
+
+                    circle.on("click", () => {
+                        state.filters.district = dist;
+                        $("#districtSelect").value = dist;
+                        render(); // re-render to highlight selected/filter table
+                    });
+                }
+            }
+        }
+
+        // -----------------------------
+        // Table
+        // -----------------------------
+        function filteredTableRows(rows) {
+            // Expand to "view rows": each data row becomes a view row with selected crime type
+            const ct = state.filters.crimeType;
+            const view = rows.map(r => {
+                let type = formatCrimeLabel(ct);
+                let val = totalForRow(r, ct);
+
+                if (ct === "__all__") {
+                    type = "Total (All)";
+                    val = r.Total;
+                } else if (CRIME_GROUPS[ct]) {
+                    type = `${ct} (Group Total)`;
+                    val = totalForRow(r, ct);
+                }
+
+                return {
+                    State: r.State,
+                    District: r.District,
+                    Year: r.Year,
+                    Total: r.Total,
+                    CrimeType: type,
+                    CrimeValue: val,
+                    IsProjected: !!r.IsProjected
+                };
+            });
+
+            const q = state.tableSearch.trim().toLowerCase();
+            let out = view;
+            if (q) {
+                out = out.filter(v =>
+                    v.State.toLowerCase().includes(q) ||
+                    v.District.toLowerCase().includes(q) ||
+                    String(v.Year).includes(q) ||
+                    v.CrimeType.toLowerCase().includes(q)
+                );
+            }
+            return out;
+        }
+
+        function sortRows(rows) {
+            const { key, dir } = state.sort;
+            const mul = dir === "asc" ? 1 : -1;
+            return rows.slice().sort((a, b) => {
+                const va = a[key], vb = b[key];
+                if (typeof va === "number" && typeof vb === "number") return (va - vb) * mul;
+                return String(va).localeCompare(String(vb)) * mul;
+            });
+        }
+
+        function renderTable(rows) {
+            const tbody = $("#tableBody");
+            if (!tbody) return;
+            tbody.innerHTML = "";
+
+            const view = sortRows(filteredTableRows(rows));
+            const totalCount = view.length;
+
+            const pages = Math.max(1, Math.ceil(totalCount / state.pageSize));
+            state.page = clamp(state.page, 1, pages);
+
+            const start = (state.page - 1) * state.pageSize;
+            const slice = view.slice(start, start + state.pageSize);
+
+            for (const r of slice) {
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-white/5 transition-colors";
+                tr.innerHTML = `
+                    <td class="px-4 py-3 whitespace-nowrap">${r.State}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">${r.District}</td>
+                    <td class="px-4 py-3">${r.Year}${r.IsProjected ? ' <span class="text-[10px] text-indigo-300">(forecast)</span>' : ''}</td>
+                    <td class="px-4 py-3">${formatInt(r.Total)}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">${r.CrimeType}</td>
+                    <td class="px-4 py-3 text-right font-medium">${formatInt(r.CrimeValue)}</td>
+                    `;
+                tbody.appendChild(tr);
+            }
+
+            setTxt("#tableMeta", `${formatInt(totalCount)} rows (showing ${start + 1}-${Math.min(start +
+                state.pageSize, totalCount)})`);
+            setTxt("#pageInfo", `Page ${state.page} / ${pages}`);
+
+            const btnPrev = $("#prevPageBtn");
+            if (btnPrev) btnPrev.disabled = state.page <= 1; const btnNext = $("#nextPageBtn"); if (btnNext)
+                btnNext.disabled = state.page >= pages;
+
+            // sort indicators
+            const keys = ["State", "District", "Year", "Total", "CrimeType", "CrimeValue"];
+            for (const k of keys) {
+                const el = $("#sort" + k);
+                if (!el) continue;
+                el.textContent = (state.sort.key === k) ? (state.sort.dir === "asc" ? " ▲" : " ▼") : "";
+            }
+        }
+
+        // -----------------------------
+        // Export
+        // -----------------------------
+        function toCSV(rows) {
+            const headers = ["State", "District", "Year", "IsProjected", ...CRIME_TYPES, "Total"];
+            const lines = [headers.join(",")];
+            for (const r of rows) {
+                const arr = headers.map(h => {
+                    const v = r[h];
+                    if (typeof v === "string") {
+                        const s = v.replaceAll('"', '""');
+                        return `"${s}"`;
+                    }
+                    return String(v ?? "");
+                });
+                lines.push(arr.join(","));
+            }
+            return lines.join("\n");
+        }
+
+        function download(filename, content, mime) {
+            const blob = new Blob([content], { type: mime });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url; a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1500);
+        }
+
+        function escapePdfText(value) {
+            return String(value ?? "")
+                .replaceAll("\\", "\\\\")
+                .replaceAll("(", "\\(")
+                .replaceAll(")", "\\)");
+        }
+
+        function buildSimplePdf(text, title = "CrimeScope Export") {
+            const pageWidth = 595;
+            const pageHeight = 842;
+            const margin = 50;
+            const lineHeight = 16;
+            const maxChars = 82;
+
+            const wrapLine = (line) => {
+                const normalized = String(line ?? "").replace(/\t/g, "    ");
+                if (!normalized.trim()) return [""];
+                const words = normalized.split(/\s+/);
+                const wrapped = [];
+                let current = "";
+                for (const word of words) {
+                    const candidate = current ? `${current} ${word}` : word;
+                    if (candidate.length <= maxChars) {
+                        current = candidate;
+                    } else {
+                        if (current) wrapped.push(current);
+                        if (word.length > maxChars) {
+                            for (let i = 0; i < word.length; i += maxChars) {
+                                wrapped.push(word.slice(i, i + maxChars));
+                            }
+                            current = "";
+                        } else {
+                            current = word;
+                        }
+                    }
+                }
+                if (current) wrapped.push(current);
+                return wrapped.length ? wrapped : [""];
+            };
+
+            const allLines = text.split(/\r?\n/).flatMap(wrapLine);
+            const linesPerPage = Math.max(1, Math.floor((pageHeight - (margin * 2) - 26) / lineHeight));
+            const pages = [];
+            for (let i = 0; i < allLines.length; i += linesPerPage) {
+                pages.push(allLines.slice(i, i + linesPerPage));
+            }
+            if (!pages.length) pages.push([""]);
+
+            const objects = [];
+            const addObject = (body) => {
+                objects.push(body);
+                return objects.length;
+            };
+
+            const fontObjectId = addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+            const pageObjectIds = [];
+
+            for (const pageLines of pages) {
+                const contentLines = [
+                    "BT",
+                    "/F1 18 Tf",
+                    "24 TL",
+                    `${margin} ${pageHeight - margin} Td`,
+                    `(${escapePdfText(title)}) Tj`,
+                    "T*",
+                    "/F1 11 Tf",
+                    `${lineHeight} TL`,
+                    "T*"
+                ];
+
+                for (const line of pageLines) {
+                    contentLines.push(`(${escapePdfText(line)}) Tj`);
+                    contentLines.push("T*");
+                }
+                contentLines.push("ET");
+
+                const stream = contentLines.join("\n");
+                const contentObjectId = addObject(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
+                const pageObjectId = addObject(`<< /Type /Page /Parent PAGES_ID 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 ${fontObjectId} 0 R >> >> /Contents ${contentObjectId} 0 R >>`);
+                pageObjectIds.push(pageObjectId);
+            }
+
+            const pagesObjectId = addObject(`<< /Type /Pages /Kids [${pageObjectIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pageObjectIds.length} >>`);
+            const catalogObjectId = addObject(`<< /Type /Catalog /Pages ${pagesObjectId} 0 R >>`);
+
+            objects.forEach((body, index) => {
+                if (body.includes("PAGES_ID")) {
+                    objects[index] = body.replaceAll("PAGES_ID", String(pagesObjectId));
+                }
+            });
+
+            let pdf = "%PDF-1.4\n";
+            const offsets = [0];
+            for (let i = 0; i < objects.length; i++) {
+                offsets.push(pdf.length);
+                pdf += `${i + 1} 0 obj\n${objects[i]}\nendobj\n`;
+            }
+
+            const xrefStart = pdf.length;
+            pdf += `xref\n0 ${objects.length + 1}\n`;
+            pdf += "0000000000 65535 f \n";
+            for (let i = 1; i < offsets.length; i++) {
+                pdf += `${String(offsets[i]).padStart(10, "0")} 00000 n \n`;
+            }
+            pdf += `trailer\n<< /Size ${objects.length + 1} /Root ${catalogObjectId} 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
+            return pdf;
+        }
+
+        function exportCurrentCSV() {
+            const rows = applyCurrentFilters();
+            download("crimescope_export.csv", toCSV(rows), "text/csv;charset=utf-8");
+        }
+
+        function exportCurrentPDF() {
+            const rows = applyCurrentFilters();
+            const f = state.filters;
+            const ct = f.crimeType === "__all__" ? "All crimes (Total)" : formatCrimeLabel(f.crimeType);
+            const title = `CrimeScope Export - ${ct} - ${f.state === "__all__" ? "All states" :
+                f.state}${f.district === "__all__" ? "" : (" / " + f.district)} - ${f.yearFrom}-${f.yearTo}`;
+            const total = sumTotal(rows, f.crimeType);
+            const yoy = yoyForSelection(rows, f.crimeType);
+            const dom = dominantCrime(rows);
+            const series = seriesByYear(rows, f.crimeType);
+            const body = [
+                title,
+                "",
+                `Generated: ${new Date().toLocaleString()}`,
+                `Rows in current view: ${formatInt(rows.length)}`,
+                `Total crimes: ${formatInt(total)}`,
+                `YoY: ${isFinite(yoy.pct) ? formatPct(yoy.pct) : "-"} (${yoy.y1}->${yoy.y2})`,
+                `Dominant crime: ${dom.label} (${formatInt(dom.value)})`,
+                "",
+                "Trend:",
+                ...series.map(s => `${s.year}: ${formatInt(s.value)}`),
+                "",
+                "Notes:",
+                "- Export generated from the current dashboard filters.",
+                "- Forecast years are included only when the Intelligence Layer is enabled."
+            ].join("\n");
+            download("crimescope_export.pdf", buildSimplePdf(body, "CrimeScope Export"), "application/octet-stream");
+        }
+
+        // -----------------------------
+        // Render all
+        // -----------------------------
+        async function render() {
+            const rows = applyCurrentFilters();
+            const f = state.filters;
+
+            const ct = f.crimeType;
+
+            const total = sumTotal(rows, ct);
+            const rate = crimeRateIndex(rows, ct);
+            const yoy = yoyForSelection(rows, ct);
+            const dom = dominantCrime(rows);
+
+            // Animate hero numbers if changed
+            const heroTotal = sumTotal(rows, state.filters.crimeType);
+            const heroEl = document.getElementById("heroTotalCrimes");
+            if (heroEl) {
+                const oldTotal = parseInt(heroEl.textContent.replace(/,/g, '')) || 0;
+                if (heroTotal !== oldTotal) {
+                    UI.animateValue(heroEl, oldTotal, heroTotal, 800);
+                }
+            }
+
+            const heroStateObj = groupBy(rows, "State", state.filters.crimeType);
+            let topS = { name: "N/A", val: 0 };
+            for (const [k, v] of heroStateObj.entries()) { if (v > topS.val) { topS = { name: k, val: v }; } }
+            setTxt("#heroTopState", topS.name);
+            setTxt("#heroTopStateMeta", `${formatInt(topS.val)} incidents in selection`);
+
+            // Comparison panel update
+            const cp = document.getElementById("comparePanel");
+            if (cp) {
+                if (state.filters.state !== "__all__") {
+                    cp.classList.add("active");
+                    // dynamic comparison vs national average
+                    const nationalRows = getAllRows().filter(r => r.Year >= state.filters.yearFrom && r.Year <= state.filters.yearTo);
+                    const nationalAvg = sumTotal(nationalRows, state.filters.crimeType) / 36; // 36 states/UTs
+                    const stateTotal = sumTotal(rows, state.filters.crimeType);
+                    const diff = ((stateTotal - nationalAvg) / (nationalAvg || 1)) * 100;
+                    cp.innerHTML = `
+                        <div class="text-[10px] uppercase text-rose-400 font-bold mb-1">vs National Benchmark</div>
+                        <div class="text-xs">Current state is <span class="${diff > 0 ? 'text-rose-300' : 'text-emerald-300'} font-bold">${Math.abs(diff).toFixed(1)}% ${diff > 0 ? 'higher' : 'lower'}</span> than the national average for this selection.</div>
+                    `;
+                } else {
+                    cp.classList.remove("active");
+                }
+            }
+
+            // Hero KPIs
+            setTxt("#heroCrimeRate", rate ? rate.toFixed(1) : "0.0");
+
+            const yoyTxt = isFinite(yoy.pct) ? formatPct(yoy.pct) : "—";
+            setTxt("#heroYoyValue", yoyTxt);
+
+            const arrow = $("#heroYoyArrow");
+            if (arrow) {
+                if (isFinite(yoy.pct)) {
+                    const up = yoy.pct >= 0;
+                    arrow.innerHTML = up
+                        ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 19V5m0 0l-6 6m6-6l6 6" stroke="rgba(255,255,255,.92)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>`
+                        : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14m0 0l-6-6m6 6l6-6" stroke="rgba(255,255,255,.92)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>`;
+                    arrow.className = "h-9 w-9 rounded-xl flex items-center justify-center border " + (up ? "bg-emerald-500/15 border-emerald-200/15" : "bg-rose-500/15 border-rose-200/15");
+                } else {
+                    arrow.textContent = "—";
+                    arrow.className = "h-9 w-9 rounded-xl flex items-center justify-center bg-white/6 border border-white/10";
+                }
+            }
+
+            setTxt("#heroDominant", dom.label);
+            setTxt("#heroDominantMeta", `${formatInt(dom.value)} incidents`);
+
+            // Dashboard KPIs
+            setTxt("#kpiTotal", formatInt(total));
+
+            const kpiYoy = $("#kpiTotalYoy");
+            if (kpiYoy) {
+                if (isFinite(yoy.pct)) {
+                    const up = yoy.pct >= 0;
+                    kpiYoy.textContent = `${up ? "▲" : "▼"} ${formatPct(yoy.pct)} `;
+                    kpiYoy.style.borderColor = up ? "rgba(34,197,94,.35)" : "rgba(239,68,68,.35)";
+                    kpiYoy.style.background = up ? "rgba(34,197,94,.12)" : "rgba(239,68,68,.12)";
+                } else {
+                    kpiYoy.textContent = "—";
+                    kpiYoy.style.borderColor = "rgba(255,255,255,.14)";
+                    kpiYoy.style.background = "rgba(255,255,255,.06)";
+                }
+            }
+
+            setTxt("#kpiRate", rate ? rate.toFixed(1) : "0.0");
+
+            // Use YoY pct as proxy delta
+            const rd = $("#kpiRateDelta");
+            if (rd) {
+                if (isFinite(yoy.pct)) {
+                    const up = yoy.pct >= 0;
+                    rd.textContent = `${up ? "▲" : "▼"} ${formatPct(yoy.pct)} `;
+                    rd.style.borderColor = up ? "rgba(34,197,94,.35)" : "rgba(239,68,68,.35)";
+                    rd.style.background = up ? "rgba(34,197,94,.12)" : "rgba(239,68,68,.12)";
+                } else {
+                    rd.textContent = "—";
+                    rd.style.borderColor = "rgba(255,255,255,.14)";
+                    rd.style.background = "rgba(255,255,255,.06)";
+                }
+            }
+
+            setTxt("#kpiTopState", topS.name);
+            setTxt("#kpiTopStateMeta", topS.name === "N/A" ? "No data" : `${formatInt(topS.val)} incidents`);
+
+            setTxt("#kpiDominant", dom.label);
+            setTxt("#kpiDominantMeta", `${formatInt(dom.value)} incidents`);
+
+            // Active filter text
+            const parts = [];
+            parts.push(ct === "__all__" ? "All crimes (Total)" : formatCrimeLabel(ct));
+            parts.push(f.state === "__all__" ? "All states" : f.state);
+            if (f.district !== "__all__") parts.push(f.district);
+            parts.push(`${f.yearFrom}–${f.yearTo} `);
+            setTxt("#activeFilterText", parts.join(" • "));
+
+            // Charts
+            const series = seriesByYear(rows, ct);
+            buildLineChart(series);
+            buildHeroMini(series);
+
+            const dist = crimeTypeDistribution(rows);
+            buildPieChart(dist);
+
+            // Top 10 bar
+            const key = state.topMode === "state" ? "State" : "District";
+            const grouped = Array.from(groupBy(rows, key, ct).entries())
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+            buildBarChart(grouped.map(x => x[0]), grouped.map(x => x[1]));
+
+            // Map
+            renderMap(rows);
+
+            // Table
+            renderTable(rows);
+
+            await refreshPredictionUI();
+        }
+
+        // -----------------------------
+        // Events
+        // -----------------------------
+        function syncFiltersFromUI() {
+            const s = $("#stateSelect").value;
+            const d = $("#districtSelect").value;
+            const ct = $("#crimeTypeSelect").value;
+            let yFrom = parseInt($("#yearFromSelect").value, 10);
+            let yTo = parseInt($("#yearToSelect").value, 10);
+            if (yFrom > yTo) [yFrom, yTo] = [yTo, yFrom];
+
+            state.filters.state = s;
+            state.filters.district = d;
+            state.filters.crimeType = ct;
+            state.filters.yearFrom = yFrom;
+            state.filters.yearTo = yTo;
+
+            // Ensure district valid for selected state
+            if (s !== "__all__" && d !== "__all__") {
+                const ok = DATA.some(r => r.State === s && r.District === d);
+                if (!ok) {
+                    state.filters.district = "__all__";
+                    $("#districtSelect").value = "__all__";
+                }
+            }
+        }
+
+        function updateYearSliderRange() {
+            const predToggle = $("#predictionToggle");
+            if (!predToggle) return;
+            const showPred = predToggle.checked;
+
+            // Update slider attributes
+            $("#yearFromSelect").innerHTML = "";
+            $("#yearToSelect").innerHTML = "";
+
+            const maxHistYear = DATA && DATA.length > 0 ? Math.max(...DATA.map(d => parseInt(d.Year))) : 2022;
+            const availableYears = showPred ? YEARS : YEARS.filter(y => y <= maxHistYear);
+
+            for (const y of availableYears) {
+                const o1 = document.createElement("option"); o1.value = y; o1.textContent = y; $("#yearFromSelect").appendChild(o1);
+                const o2 = document.createElement("option"); o2.value = y; o2.textContent = y; $("#yearToSelect").appendChild(o2);
+            }
+
+            // Set values
+            // If turning OFF, cap at maxHistYear
+            if (!showPred && state.filters.yearTo > maxHistYear) {
+                state.filters.yearTo = maxHistYear;
+            }
+            // If turning ON, extend to max historical year + 5
+            if (showPred && state.filters.yearTo < (maxHistYear + 5)) {
+                state.filters.yearTo = Math.min(maxHistYear + 5, YEARS[YEARS.length - 1]);
+            }
+
+            if ([...$("#yearFromSelect").options].some(o => parseInt(o.value) === state.filters.yearFrom)) {
+                $("#yearFromSelect").value = state.filters.yearFrom;
+            }
+            if ([...$("#yearToSelect").options].some(o => parseInt(o.value) === state.filters.yearTo)) {
+                $("#yearToSelect").value = state.filters.yearTo;
+            }
+        }
+
+        async function resetFilters() {
+            // Respect prediction toggle
+            if (typeof updateYearSliderRange === "function") updateYearSliderRange();
+
+            const predToggle = $("#predictionToggle");
+            const showPred = predToggle && predToggle.checked;
+            const maxHistYear = DATA && DATA.length > 0 ? Math.max(...DATA.map(d => parseInt(d.Year))) : 2022;
+            const maxYear = showPred ? Math.min(maxHistYear + 5, YEARS[YEARS.length - 1]) : maxHistYear;
+
+            state.filters = {
+                state: "__all__",
+                district: "__all__",
+                crimeType: "__all__",
+                yearFrom: YEARS[0],
+                yearTo: maxYear
+            };
+            $("#stateSelect").value = "__all__";
+            await populateDistrictSelect($("#districtSelect"), "__all__", "__all__");
+            $("#crimeTypeSelect").value = "__all__";
+
+            if (typeof updateYearSliderRange === "function") updateYearSliderRange();
+
+            $("#yearFromSelect").value = YEARS[0];
+            $("#yearToSelect").value = maxYear;
+
+            state.page = 1;
+            state.tableSearch = "";
+            $("#tableSearch").value = "";
+            await render();
+        }
+
+        // -----------------------------
+        // Mobile drawer: global
+        // -----------------------------
+        let drawerOpen = false;
+
+        function openDrawer() {
+            if (window.innerWidth >= 768) return;
+            drawerOpen = true;
+            const overlay = $("#overlay");
+            const drawer = $("#mobileDrawer");
+            if (overlay) overlay.classList.add("show");
+            if (drawer) drawer.style.transform = "translateX(0)";
+
+            // mount filters panel content
+            const mount = $("#drawerFiltersMount");
+            const panel = $("#filtersPanel");
+
+            if (mount && panel) {
+                mount.innerHTML = "";
+                const clone = panel.cloneNode(true);
+                clone.id = "filtersPanelClone";
+                clone.classList.remove("h-fit");
+                mount.appendChild(clone);
+
+                // wire cloned buttons
+                const mapId = (id) => clone.querySelector("#" + id);
+
+                // Copy values
+                ["stateSelect", "districtSelect", "crimeTypeSelect", "yearFromSelect", "yearToSelect"].forEach(id => {
+                    const orig = $("#" + id);
+                    const c = mapId(id);
+                    if (orig && c) c.value = orig.value;
+                });
+
+                // Events
+                const cState = mapId("stateSelect");
+                if (cState) {
+                    cState.addEventListener("change", async () => {
+                        const s = cState.value;
+                        const dSel = mapId("districtSelect");
+                        if (!dSel) return;
+                        await populateDistrictSelect(dSel, s, "__all__");
+                    });
+                }
+
+                const cApply = mapId("applyFiltersBtn");
+                if (cApply) {
+                    cApply.addEventListener("click", async () => {
+                        ["stateSelect", "districtSelect", "crimeTypeSelect", "yearFromSelect", "yearToSelect"].forEach(id => {
+                            const orig = $("#" + id);
+                            const c = mapId(id);
+                            if (orig && c) orig.value = c.value;
+                        });
+                        const sSel = $("#stateSelect");
+                        const dSel = $("#districtSelect");
+                        const cDist = mapId("districtSelect");
+                        if (sSel && dSel && cDist) {
+                            await populateDistrictSelect(dSel, sSel.value, cDist.value);
+                            const desiredDistrict = cDist.value;
+                            if ([...dSel.options].some(o => o.value === desiredDistrict)) {
+                                dSel.value = desiredDistrict;
+                            } else {
+                                dSel.value = "__all__";
+                            }
+                        }
+                        syncFiltersFromUI();
+                        state.page = 1;
+                        await render();
+                        closeDrawer();
+                    });
+                }
+
+                const cClear = mapId("clearFiltersBtn");
+                if (cClear) {
+                    cClear.addEventListener("click", async () => {
+                        await resetFilters();
+                        ["stateSelect", "districtSelect", "crimeTypeSelect", "yearFromSelect", "yearToSelect"].forEach(id => {
+                            const orig = $("#" + id);
+                            const c = mapId(id);
+                            if (orig && c) c.value = orig.value;
+                        });
+                    });
+                }
+            }
+        }
+
+        function closeDrawer() {
+            if (!drawerOpen) return;
+            drawerOpen = false;
+            const overlay = $("#overlay");
+            const drawer = $("#mobileDrawer");
+            const mount = $("#drawerFiltersMount");
+            if (overlay) overlay.classList.remove("show");
+            if (drawer) drawer.style.transform = "translateX(-100%)";
+            if (mount) mount.innerHTML = "";
+        }
+
+        function toggleDrawer() {
+            if (window.innerWidth >= 768) {
+                const fp = document.getElementById("filtersPanel");
+                if (fp) fp.scrollIntoView({ behavior: "smooth", block: "start" });
+                return;
+            }
+            drawerOpen ? closeDrawer() : openDrawer();
+        }
+
+        function initUIEvents() {
+            const bind = (sel, evt, fn) => { const el = $(sel); if (el) el.addEventListener(evt, fn); };
+            const bindAll = (sel, evt, fn) => { $$(sel).forEach(el => el.addEventListener(evt, fn)); };
+
+            // Core Filters
+            bind("#applyFiltersBtn", "click", async () => {
+                syncFiltersFromUI();
+                await render();
+                document.getElementById("data-explorer")?.scrollIntoView({ behavior: "smooth" });
+                UI.toast("Filters applied successfully", "✅");
+            });
+            bind("#ctaResetBtn", "click", async () => { await resetFilters(); UI.toast("Dashboard reset to defaults", "🔄"); });
+            bind("#clearFiltersBtn", "click", resetFilters);
+
+            // Export
+            bind("#downloadSampleBtn", "click", exportCurrentCSV);
+            bind("#exportCsvBtn", "click", exportCurrentCSV);
+            bind("#exportPdfBtn", "click", exportCurrentPDF);
+            bind("#tableCsvBtn", "click", exportCurrentCSV);
+            bind("#tablePdfBtn", "click", exportCurrentPDF);
+
+            // Table Interactivity
+            bind("#tableSearch", "input", (e) => {
+                state.tableSearch = e.target.value;
+                state.page = 1;
+                render();
+            });
+            bind("#prevPageBtn", "click", () => { state.page--; render(); });
+            bind("#nextPageBtn", "click", () => { state.page++; render(); });
+
+            bindAll("thead th[data-sort]", "click", (e) => {
+                const key = e.currentTarget.getAttribute("data-sort");
+                if (state.sort.key === key) {
+                    state.sort.dir = state.sort.dir === "asc" ? "desc" : "asc";
+                } else {
+                    state.sort.key = key;
+                    state.sort.dir = "desc";
+                }
+                render();
+            });
+
+            bind("#toggleTopModeBtn", "click", () => {
+                state.topMode = state.topMode === "state" ? "district" : "state";
+                const label = $("#topModeLabel");
+                if (label) label.textContent = state.topMode === "state" ? "States" : "Districts";
+                render();
+            });
+
+            // Prediction
+            bind("#predictionToggle", "change", async () => {
+                updateYearSliderRange();
+                syncFiltersFromUI();
+                await render();
+            });
+
+            bind("#predictInputYear", "change", async (e) => {
+                const inputYear = parseInt(e.target.value, 10);
+                if (!Number.isFinite(inputYear)) return;
+
+                const maxHistYear = DATA && DATA.length > 0 ? Math.max(...DATA.map((d) => parseInt(d.Year, 10))) : 2022;
+                if (inputYear <= maxHistYear) {
+                    e.target.value = maxHistYear + 1;
+                }
+
+                await refreshPredictionUI();
+            });
+
+            // Navigation & Hero
+            const scrollDash = () => document.getElementById("data-explorer")?.scrollIntoView({ behavior: "smooth" });
+            bind("#jumpDashboardBtn", "click", scrollDash);
+            bind("#ctaExploreBtn", "click", scrollDash);
+            bind("#heroFocusBtn", "click", scrollDash);
+
+            // Mobile & Modals
+            bind("#playbackBtn", "click", toggleYearPlayback);
+            bind("#closeDrillBtn", "click", () => $("#drillModal").classList.remove("open"));
+            bind("#mobileMenuBtn", "click", toggleDrawer);
+            bind("#closeDrawerBtn", "click", closeDrawer);
+            bind("#overlay", "click", closeDrawer);
+
+            // Keyboard Shortcuts
+            window.addEventListener("keydown", (e) => {
+                const tableSearch = document.getElementById("tableSearch");
+                if (document.activeElement === tableSearch) {
+                    if (e.key === "Escape") tableSearch.blur();
+                    return;
+                }
+                if (e.key === "f" || e.key === "F") {
+                    e.preventDefault();
+                    document.getElementById("filtersPanel").scrollIntoView({ behavior: "smooth" });
+                    UI.toast("Filter focus invoked", "🔍");
+                } else if (e.key === "/") {
+                    e.preventDefault();
+                    document.getElementById("data-explorer").scrollIntoView({ behavior: "smooth" });
+                    tableSearch?.focus();
+                } else if (e.key === "?" || (e.key === "/" && e.shiftKey)) {
+                    $("#shortcutModal").classList.add("open");
+                } else if (e.key === "Escape") {
+                    $(".modal.open")?.classList.remove("open");
+                    $("#drillModal").classList.remove("open");
+                    $("#shortcutModal").classList.remove("open");
+                    closeDrawer();
+                }
+            });
+
+            UI.initScrollReveal();
+            UI.initTiltCards();
+        }
+
+        // -----------------------------
+        // Mobile drawer: clone filters
+
+
+        // -----------------------------
+        // Init
+        // -----------------------------
+        async function initDashboard() {
+            try {
+                chartDefaults();
+                UI.particleBackground();
+
+                const status = document.getElementById("loadingStatus");
+
+                status.textContent = "Connecting to backend...";
+                DATA = await window.ApiClient.getDashboardData();
+
+                status.textContent = "Analyzing historical indices...";
+                await initFilters();
+
+                status.textContent = "Rendering geographical matrix...";
+                initMap();
+
+                status.textContent = "Booting interactive engine...";
+                initUIEvents();
+
+                // Final render
+                await resetFilters();
+
+                // Reveal elements after small delay to show off background
+                setTimeout(() => {
+                    document.getElementById("loadingOverlay").classList.add("hidden");
+                    UI.toast("Dashboard Ready", "🚀");
+                }, 1200);
+
+                window.ApiClient.getProjectionDataset(2025)
+                    .then(async (rows) => {
+                        FUTURE_DATA = rows;
+                        if ($("#predictionToggle")?.checked) {
+                            await render();
+                        }
+                        UI.toast("Forecast horizon synced to 2025", "🧠");
+                    })
+                    .catch((err) => {
+                        console.error("Projection dataset load failed", err);
+                    });
+
+            } catch (e) {
+                console.error("Dashboard Init Error:", e);
+            }
+        }
+
+        // Execute immediately since script is at the bottom of <body>
+        initDashboard();
+    </script>
+</body>
+
+</html>
+
+
