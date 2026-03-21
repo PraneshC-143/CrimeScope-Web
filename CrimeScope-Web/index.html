@@ -890,7 +890,7 @@
                                     </div>
                                 </div>
                                 <div id="heroTotalCrimes" class="text-3xl font-bold text-white tracking-tight">—</div>
-                                <div class="mt-3 text-xs text-slate-500 font-medium">Observed data, expanded when forecast mode is enabled</div>
+                                <div class="mt-3 text-xs text-slate-500 font-medium">Actual recorded data, extended when future estimates are turned on</div>
                             </div>
                         </div>
 
@@ -898,9 +898,9 @@
                             class="glass rounded-3xl p-6 shadow-bento border-white/5 flex flex-col justify-between group">
                             <div>
                                 <div class="text-[11px] uppercase tracking-wider font-semibold text-indigo-400/80 mb-1">
-                                    Forecast Mode</div>
-                                <div class="text-xs text-white/90 font-medium mt-1">Include modeled years</div>
-                                <div class="text-[10px] text-slate-500 mt-1">Blend observed data with the 2023–2025 planning layer</div>
+                                    Future Estimate</div>
+                                <div class="text-xs text-white/90 font-medium mt-1">Include estimated future years</div>
+                                <div class="text-[10px] text-slate-500 mt-1">Combine actual data with estimated values for 2023-2025</div>
                             </div>
                             <div class="mt-4 flex items-center justify-between">
                                 <span class="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">Status:
@@ -1326,16 +1326,16 @@
                                     <div class="mt-2 text-xs text-slate-400">Forecast for selected state scope</div>
                                 </div>
                                 <div class="rounded-3xl border border-white/8 bg-slate-950/55 p-4">
-                                    <div class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Delta Vs Last
+                                    <div class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Change From Last Year
                                     </div>
                                     <div id="predictDelta" class="mt-3 text-2xl font-semibold text-white">—</div>
                                     <div id="predictTrend" class="mt-2 text-xs text-slate-400">Awaiting forecast</div>
                                 </div>
                                 <div class="rounded-3xl border border-white/8 bg-slate-950/55 p-4">
-                                    <div class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Confidence Band
+                                    <div class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Expected Range
                                     </div>
                                     <div id="predictConfidence" class="mt-3 text-lg font-semibold text-white">—</div>
-                                    <div id="predictStability" class="mt-2 text-xs text-slate-400">Model stability —
+                                    <div id="predictStability" class="mt-2 text-xs text-slate-400">Trend strength —
                                     </div>
                                 </div>
                             </div>
@@ -1344,21 +1344,21 @@
                         <div
                             class="mt-5 grid grid-cols-1 xl:grid-cols-[1.4fr_0.9fr] gap-4 border-t border-white/6 pt-5">
                             <div>
-                                <div class="text-[11px] uppercase tracking-[0.24em] text-slate-500">Forecast Logic</div>
+                                <div class="text-[11px] uppercase tracking-[0.24em] text-slate-500">How This Estimate Is Read</div>
                                 <div id="predictNarrative" class="mt-2 text-sm text-slate-300 leading-6">
-                                    Forecast metadata will appear here once the dashboard resolves the current scope.
+                                    A simple explanation of the current estimate will appear here once the dashboard loads this view.
                                 </div>
                             </div>
                             <div class="rounded-3xl border border-white/8 bg-white/[0.03] p-4">
-                                <div class="text-[11px] uppercase tracking-[0.24em] text-slate-500">Model Stack</div>
+                                <div class="text-[11px] uppercase tracking-[0.24em] text-slate-500">Estimate Details</div>
                                 <div class="mt-2 flex flex-wrap gap-2">
                                     <span id="predictModel"
                                         class="pill border-indigo-400/20 bg-indigo-500/10 text-indigo-200">—</span>
                                     <span id="predictSupport"
-                                        class="pill border-white/10 bg-white/[0.04] text-slate-300">Calibrating…</span>
+                                        class="pill border-white/10 bg-white/[0.04] text-slate-300">Loading…</span>
                                 </div>
-                                <div id="predictComponents" class="mt-3 text-xs text-slate-400 leading-5">Model
-                                    components will appear here.</div>
+                                <div id="predictComponents" class="mt-3 text-xs text-slate-400 leading-5">Prediction
+                                    details will appear here.</div>
                             </div>
                         </div>
                     </div>
@@ -2465,24 +2465,24 @@
                 modelEl.textContent = "Forecast disabled";
                 if (deltaEl) deltaEl.textContent = "—";
                 if (confidenceEl) confidenceEl.textContent = "—";
-                if (trendEl) trendEl.textContent = "Enable the forecast horizon to compare beyond actual data.";
-                if (narrativeEl) narrativeEl.textContent = "Forecast rows are currently hidden. Turn on the forecast switch to extend district-level modeled data through 2025.";
-                if (supportEl) supportEl.textContent = "Historical mode";
-                if (componentsEl) componentsEl.textContent = "Model components hidden while forecast mode is disabled.";
-                if (stabilityEl) stabilityEl.textContent = "Model stability —";
+                if (trendEl) trendEl.textContent = "Turn on future estimates to compare beyond actual recorded data.";
+                if (narrativeEl) narrativeEl.textContent = "Estimated future rows are hidden right now. Turn on the switch to extend district-level estimates through 2025.";
+                if (supportEl) supportEl.textContent = "Past data only";
+                if (componentsEl) componentsEl.textContent = "Prediction details are hidden while future estimates are turned off.";
+                if (stabilityEl) stabilityEl.textContent = "Trend strength —";
                 return;
             }
 
             const requestToken = ++predictionRequestToken;
             predictionEl.textContent = "…";
-            modelEl.textContent = "Computing forecast";
+            modelEl.textContent = "Preparing estimate";
             if (deltaEl) deltaEl.textContent = "…";
             if (confidenceEl) confidenceEl.textContent = "…";
-            if (trendEl) trendEl.textContent = "Recomputing direction";
-            if (narrativeEl) narrativeEl.textContent = "The forecast engine is evaluating historical trend slope and recent volatility for the active scope.";
-            if (supportEl) supportEl.textContent = "Calibrating…";
-            if (componentsEl) componentsEl.textContent = "Collecting ensemble outputs…";
-            if (stabilityEl) stabilityEl.textContent = "Model stability —";
+            if (trendEl) trendEl.textContent = "Updating estimate";
+            if (narrativeEl) narrativeEl.textContent = "The system is reviewing past movement and recent variation for the selected area.";
+            if (supportEl) supportEl.textContent = "Loading…";
+            if (componentsEl) componentsEl.textContent = "Preparing prediction details…";
+            if (stabilityEl) stabilityEl.textContent = "Trend strength —";
 
             try {
                 const prediction = await fetchPrediction(state.filters.state, targetYear);
@@ -2490,7 +2490,7 @@
 
                 if (prediction) {
                     predictionEl.textContent = formatInt(prediction.predicted_crimes);
-                    modelEl.textContent = prediction.model_used || "Forecast model";
+                    modelEl.textContent = prediction.model_used || "Estimate model";
                     if (deltaEl) {
                         deltaEl.textContent = formatSignedInt(prediction.delta_from_last_year || 0);
                         deltaEl.className = `mt-3 text-2xl font-semibold ${prediction.delta_from_last_year >= 0 ? 'text-rose-300' : 'text-emerald-300'}`;
@@ -2502,7 +2502,7 @@
                     }
                     if (stabilityEl) {
                         const stability = prediction.quality?.stability || "moderate";
-                        stabilityEl.textContent = `Model stability: ${formatCrimeLabel(stability)}`;
+                        stabilityEl.textContent = `Trend strength: ${formatCrimeLabel(stability)}`;
                     }
                     if (supportEl) {
                         const historyPoints = prediction.quality?.history_points || 0;
@@ -2529,7 +2529,7 @@
                     if (narrativeEl) narrativeEl.textContent = "The forecast service returned no usable result for this scope.";
                     if (supportEl) supportEl.textContent = "Unavailable";
                     if (componentsEl) componentsEl.textContent = "No component outputs returned.";
-                    if (stabilityEl) stabilityEl.textContent = "Model stability —";
+                    if (stabilityEl) stabilityEl.textContent = "Trend strength —";
                 }
             } catch (e) {
                 if (requestToken !== predictionRequestToken) return;
@@ -2541,7 +2541,7 @@
                 if (narrativeEl) narrativeEl.textContent = "A forecast error occurred while evaluating the active selection.";
                 if (supportEl) supportEl.textContent = "Unavailable";
                 if (componentsEl) componentsEl.textContent = "No component outputs returned.";
-                if (stabilityEl) stabilityEl.textContent = "Model stability —";
+                if (stabilityEl) stabilityEl.textContent = "Trend strength —";
             }
         }
 
@@ -3289,28 +3289,30 @@
                 .replaceAll(")", "\\)");
         }
 
-        function buildSimplePdf(text, title = "CrimeScope Export") {
+        function buildProfessionalPdf(report) {
             const pageWidth = 595;
             const pageHeight = 842;
-            const margin = 50;
-            const lineHeight = 16;
-            const maxChars = 82;
+            const margin = 44;
+            const contentWidth = pageWidth - (margin * 2);
+            const tableWidths = [46, 98, 150, 84, 74];
+            const pages = [];
+            const topRows = report.previewRows || [];
 
-            const wrapLine = (line) => {
-                const normalized = String(line ?? "").replace(/\t/g, "    ");
-                if (!normalized.trim()) return [""];
-                const words = normalized.split(/\s+/);
-                const wrapped = [];
+            function wrapPdfText(text, maxChars) {
+                const normalized = String(text ?? "").replace(/\s+/g, " ").trim();
+                if (!normalized) return [""];
+                const words = normalized.split(" ");
+                const lines = [];
                 let current = "";
                 for (const word of words) {
                     const candidate = current ? `${current} ${word}` : word;
                     if (candidate.length <= maxChars) {
                         current = candidate;
                     } else {
-                        if (current) wrapped.push(current);
+                        if (current) lines.push(current);
                         if (word.length > maxChars) {
                             for (let i = 0; i < word.length; i += maxChars) {
-                                wrapped.push(word.slice(i, i + maxChars));
+                                lines.push(word.slice(i, i + maxChars));
                             }
                             current = "";
                         } else {
@@ -3318,17 +3320,217 @@
                         }
                     }
                 }
-                if (current) wrapped.push(current);
-                return wrapped.length ? wrapped : [""];
-            };
-
-            const allLines = text.split(/\r?\n/).flatMap(wrapLine);
-            const linesPerPage = Math.max(1, Math.floor((pageHeight - (margin * 2) - 26) / lineHeight));
-            const pages = [];
-            for (let i = 0; i < allLines.length; i += linesPerPage) {
-                pages.push(allLines.slice(i, i + linesPerPage));
+                if (current) lines.push(current);
+                return lines.length ? lines : [""];
             }
-            if (!pages.length) pages.push([""]);
+
+            function rgb(hex) {
+                const cleaned = hex.replace("#", "");
+                const value = cleaned.length === 3 ? cleaned.split("").map((c) => c + c).join("") : cleaned;
+                const r = parseInt(value.slice(0, 2), 16) / 255;
+                const g = parseInt(value.slice(2, 4), 16) / 255;
+                const b = parseInt(value.slice(4, 6), 16) / 255;
+                return `${r.toFixed(3)} ${g.toFixed(3)} ${b.toFixed(3)}`;
+            }
+
+            function newPage() {
+                const page = { ops: [], pageNumber: pages.length + 1 };
+                page.y = pageHeight - margin;
+                pages.push(page);
+                return page;
+            }
+
+            function currentPage() {
+                return pages.length ? pages[pages.length - 1] : newPage();
+            }
+
+            function addOp(page, op) {
+                page.ops.push(op);
+            }
+
+            function drawRect(page, x, y, w, h, fillColor, strokeColor = null, lineWidth = 1) {
+                addOp(page, "q");
+                if (fillColor) addOp(page, `${rgb(fillColor)} rg`);
+                if (strokeColor) {
+                    addOp(page, `${rgb(strokeColor)} RG`);
+                    addOp(page, `${lineWidth} w`);
+                }
+                addOp(page, `${x.toFixed(2)} ${y.toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re ${fillColor && strokeColor ? "B" : fillColor ? "f" : "S"}`);
+                addOp(page, "Q");
+            }
+
+            function drawText(page, text, x, y, options = {}) {
+                const {
+                    size = 11,
+                    color = "#0f172a",
+                    font = "F1"
+                } = options;
+                addOp(page, "BT");
+                addOp(page, `/${font} ${size} Tf`);
+                addOp(page, `${rgb(color)} rg`);
+                addOp(page, `1 0 0 1 ${x.toFixed(2)} ${y.toFixed(2)} Tm`);
+                addOp(page, `(${escapePdfText(text)}) Tj`);
+                addOp(page, "ET");
+            }
+
+            function drawWrappedText(page, text, x, y, maxChars, options = {}) {
+                const lines = wrapPdfText(text, maxChars);
+                const lineHeight = options.lineHeight || ((options.size || 11) + 4);
+                lines.forEach((line, idx) => drawText(page, line, x, y - (idx * lineHeight), options));
+                return lines.length * lineHeight;
+            }
+
+            function ensureSpace(heightNeeded) {
+                const page = currentPage();
+                if (page.y - heightNeeded < margin) {
+                    return newPage();
+                }
+                return page;
+            }
+
+            function drawSectionTitle(title, subtitle = "") {
+                const page = ensureSpace(54);
+                drawText(page, title, margin, page.y, { size: 13, color: "#0f172a", font: "F2" });
+                if (subtitle) drawText(page, subtitle, margin, page.y - 18, { size: 9, color: "#64748b" });
+                page.y -= 34;
+            }
+
+            function drawHeader(page) {
+                drawRect(page, 0, pageHeight - 126, pageWidth, 126, "#0f172a");
+                drawRect(page, 0, pageHeight - 134, pageWidth, 8, "#dc2626");
+                drawText(page, "CrimeScope", margin, pageHeight - 54, { size: 24, color: "#ffffff", font: "F2" });
+                drawText(page, "Crime Analytics Export Report", margin, pageHeight - 76, { size: 12, color: "#cbd5e1" });
+                drawText(page, `Generated ${report.generatedAt}`, margin, pageHeight - 96, { size: 10, color: "#94a3b8" });
+                drawText(page, `Page ${page.pageNumber}`, pageWidth - margin - 34, pageHeight - 96, { size: 10, color: "#94a3b8" });
+                page.y = pageHeight - 156;
+            }
+
+            function drawMetricCards(metrics) {
+                const page = ensureSpace(112);
+                const gap = 12;
+                const cardWidth = (contentWidth - (gap * 3)) / 4;
+                const yTop = page.y;
+                metrics.forEach((metric, idx) => {
+                    const x = margin + idx * (cardWidth + gap);
+                    drawRect(page, x, yTop - 72, cardWidth, 72, "#f8fafc", "#dbe4f0");
+                    drawText(page, metric.label, x + 12, yTop - 18, { size: 8, color: "#64748b", font: "F2" });
+                    const valueLines = wrapPdfText(metric.value, 16).slice(0, 2);
+                    valueLines.forEach((line, lineIdx) => {
+                        drawText(page, line, x + 12, yTop - 38 - (lineIdx * 18), { size: 15, color: "#0f172a", font: "F2" });
+                    });
+                    if (metric.note) drawText(page, metric.note, x + 12, yTop - 60, { size: 8, color: "#475569" });
+                });
+                page.y -= 90;
+            }
+
+            function drawInfoBox(title, lines) {
+                const wrappedLines = lines.flatMap((line) => wrapPdfText(line, 76));
+                const height = 18 + (wrappedLines.length * 14) + 18;
+                const page = ensureSpace(height + 10);
+                drawRect(page, margin, page.y - height, contentWidth, height, "#f8fafc", "#dbe4f0");
+                drawText(page, title, margin + 14, page.y - 20, { size: 10, color: "#0f172a", font: "F2" });
+                wrappedLines.forEach((line, idx) => {
+                    drawText(page, line, margin + 14, page.y - 40 - (idx * 14), { size: 10, color: "#334155" });
+                });
+                page.y -= height + 12;
+            }
+
+            function drawTrendGrid(series) {
+                const rows = [];
+                for (let i = 0; i < series.length; i += 3) rows.push(series.slice(i, i + 3));
+                const boxHeight = 34 + rows.length * 28;
+                const page = ensureSpace(boxHeight + 10);
+                drawRect(page, margin, page.y - boxHeight, contentWidth, boxHeight, "#ffffff", "#e2e8f0");
+                drawText(page, "Yearly Trend", margin + 14, page.y - 20, { size: 10, color: "#0f172a", font: "F2" });
+                rows.forEach((row, rowIdx) => {
+                    row.forEach((item, colIdx) => {
+                        const x = margin + 14 + (colIdx * 165);
+                        const y = page.y - 44 - (rowIdx * 28);
+                        drawText(page, String(item.year), x, y, { size: 9, color: "#64748b", font: "F2" });
+                        drawText(page, formatInt(item.value), x + 44, y, { size: 10, color: "#0f172a" });
+                    });
+                });
+                page.y -= boxHeight + 12;
+            }
+
+            function drawTableHeader(page, y) {
+                drawRect(page, margin, y - 20, contentWidth, 22, "#e2e8f0");
+                const headers = ["Year", "State", "District", "Value", "Type"];
+                let x = margin + 8;
+                headers.forEach((header, idx) => {
+                    drawText(page, header, x, y - 14, { size: 9, color: "#0f172a", font: "F2" });
+                    x += tableWidths[idx];
+                });
+            }
+
+            function rowValueForPdf(row, crimeType) {
+                if (crimeType === "__all__") return parseInt(row.Total || 0, 10) || 0;
+                return parseInt(row[crimeType] || 0, 10) || 0;
+            }
+
+            function drawPreviewTable(rows, crimeType) {
+                let page = ensureSpace(96);
+                drawSectionTitle("Data Preview", "Top rows from the current filtered view");
+                page = currentPage();
+                drawTableHeader(page, page.y);
+                page.y -= 30;
+
+                rows.forEach((row) => {
+                    if (page.y - 24 < margin) {
+                        page = newPage();
+                        drawHeader(page);
+                        drawSectionTitle("Data Preview", "Continued");
+                        page = currentPage();
+                        drawTableHeader(page, page.y);
+                        page.y -= 30;
+                    }
+
+                    const kind = row.IsProjected ? "Estimated" : "Actual";
+                    drawRect(page, margin, page.y - 18, contentWidth, 20, row.IsProjected ? "#fff7ed" : "#ffffff", "#e2e8f0", 0.8);
+                    const cells = [
+                        String(row.Year ?? ""),
+                        String(row.State ?? ""),
+                        String(row.District ?? ""),
+                        formatInt(rowValueForPdf(row, crimeType)),
+                        kind
+                    ];
+                    let x = margin + 8;
+                    cells.forEach((cell, idx) => {
+                        const maxChars = idx === 2 ? 24 : idx === 1 ? 15 : 10;
+                        const clipped = wrapPdfText(cell, maxChars)[0];
+                        drawText(page, clipped, x, page.y - 12, { size: 9, color: "#1e293b" });
+                        x += tableWidths[idx];
+                    });
+                    page.y -= 22;
+                });
+            }
+
+            const firstPage = newPage();
+            drawHeader(firstPage);
+
+            drawSectionTitle("Current View", "Filters applied to this export");
+            drawInfoBox("Selection Summary", [
+                `Crime category: ${report.scope.crimeType}`,
+                `State and district: ${report.scope.location}`,
+                `Year range: ${report.scope.yearRange}`,
+                `Data shown: ${report.scope.mode}`
+            ]);
+
+            drawMetricCards([
+                { label: "ROWS", value: formatInt(report.rowCount), note: "records in this view" },
+                { label: "TOTAL", value: formatInt(report.total), note: "selected scope total" },
+                { label: "YEAR CHANGE", value: report.yoyText, note: report.yoyNote },
+                { label: "TOP CATEGORY", value: report.dominant, note: "highest contribution" }
+            ]);
+
+            drawSectionTitle("Estimate Summary", "Key highlights for the current view");
+            drawInfoBox("Narrative", [
+                report.narrative,
+                `Prepared by CrimeScope for quick review and sharing.`
+            ]);
+
+            drawTrendGrid(report.series);
+            drawPreviewTable(topRows, report.scope.crimeTypeKey);
 
             const objects = [];
             const addObject = (body) => {
@@ -3336,31 +3538,16 @@
                 return objects.length;
             };
 
-            const fontObjectId = addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+            const fontRegularId = addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+            const fontBoldId = addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>");
             const pageObjectIds = [];
 
-            for (const pageLines of pages) {
-                const contentLines = [
-                    "BT",
-                    "/F1 18 Tf",
-                    "24 TL",
-                    `${margin} ${pageHeight - margin} Td`,
-                    `(${escapePdfText(title)}) Tj`,
-                    "T*",
-                    "/F1 11 Tf",
-                    `${lineHeight} TL`,
-                    "T*"
-                ];
-
-                for (const line of pageLines) {
-                    contentLines.push(`(${escapePdfText(line)}) Tj`);
-                    contentLines.push("T*");
-                }
-                contentLines.push("ET");
-
-                const stream = contentLines.join("\n");
+            for (const page of pages) {
+                const stream = page.ops.join("\n");
                 const contentObjectId = addObject(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
-                const pageObjectId = addObject(`<< /Type /Page /Parent PAGES_ID 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 ${fontObjectId} 0 R >> >> /Contents ${contentObjectId} 0 R >>`);
+                const pageObjectId = addObject(
+                    `<< /Type /Page /Parent PAGES_ID 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 ${fontRegularId} 0 R /F2 ${fontBoldId} 0 R >> >> /Contents ${contentObjectId} 0 R >>`
+                );
                 pageObjectIds.push(pageObjectId);
             }
 
@@ -3368,9 +3555,7 @@
             const catalogObjectId = addObject(`<< /Type /Catalog /Pages ${pagesObjectId} 0 R >>`);
 
             objects.forEach((body, index) => {
-                if (body.includes("PAGES_ID")) {
-                    objects[index] = body.replaceAll("PAGES_ID", String(pagesObjectId));
-                }
+                if (body.includes("PAGES_ID")) objects[index] = body.replaceAll("PAGES_ID", String(pagesObjectId));
             });
 
             let pdf = "%PDF-1.4\n";
@@ -3399,29 +3584,33 @@
             const rows = applyCurrentFilters();
             const f = state.filters;
             const ct = f.crimeType === "__all__" ? "All crimes (Total)" : formatCrimeLabel(f.crimeType);
-            const title = `CrimeScope Export - ${ct} - ${f.state === "__all__" ? "All states" :
-                f.state}${f.district === "__all__" ? "" : (" / " + f.district)} - ${f.yearFrom}-${f.yearTo}`;
             const total = sumTotal(rows, f.crimeType);
             const yoy = yoyForSelection(rows, f.crimeType);
             const dom = dominantCrime(rows);
             const series = seriesByYear(rows, f.crimeType);
-            const body = [
-                title,
-                "",
-                `Generated: ${new Date().toLocaleString()}`,
-                `Rows in current view: ${formatInt(rows.length)}`,
-                `Total crimes: ${formatInt(total)}`,
-                `YoY: ${isFinite(yoy.pct) ? formatPct(yoy.pct) : "-"} (${yoy.y1}->${yoy.y2})`,
-                `Dominant crime: ${dom.label} (${formatInt(dom.value)})`,
-                "",
-                "Trend:",
-                ...series.map(s => `${s.year}: ${formatInt(s.value)}`),
-                "",
-                "Notes:",
-                "- Export generated from the current dashboard filters.",
-                "- Forecast years are included only when the Intelligence Layer is enabled."
-            ].join("\n");
-            download("crimescope_export.pdf", buildSimplePdf(body, "CrimeScope Export"), "application/octet-stream");
+            const location = `${f.state === "__all__" ? "All states" : f.state}${f.district === "__all__" ? "" : ` / ${f.district}`}`;
+            const yoyText = isFinite(yoy.pct) ? formatPct(yoy.pct) : "Not available";
+            const yoyNote = isFinite(yoy.pct) ? `${yoy.y1} to ${yoy.y2}` : "Not enough yearly history";
+            const previewRows = rows.slice(0, Math.min(rows.length, 18));
+            const report = {
+                generatedAt: new Date().toLocaleString(),
+                rowCount: rows.length,
+                total,
+                yoyText,
+                yoyNote,
+                dominant: `${dom.label} (${formatInt(dom.value)})`,
+                series,
+                previewRows,
+                narrative: `This report covers ${ct.toLowerCase()} for ${location.toLowerCase()} from ${f.yearFrom} to ${f.yearTo}. The current view contains ${formatInt(total)} incidents across ${formatInt(rows.length)} records, and the strongest crime category in this view is ${dom.label}.`,
+                scope: {
+                    crimeType: ct,
+                    crimeTypeKey: f.crimeType,
+                    location,
+                    yearRange: `${f.yearFrom} to ${f.yearTo}`,
+                    mode: state.predictionEnabled ? "Actual data with future estimates enabled" : "Actual data only"
+                }
+            };
+            download("crimescope_export.pdf", buildProfessionalPdf(report), "application/pdf");
         }
 
         // -----------------------------
