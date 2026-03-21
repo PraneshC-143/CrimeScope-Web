@@ -2720,17 +2720,16 @@
             all.textContent = "All districts";
             selectEl.appendChild(all);
 
-            let districts = [];
-            try {
-                districts = await window.ApiClient.getDistricts(selectedState === "__all__" ? "all" : selectedState);
-            } catch (e) {
-                districts = [];
-            }
+            let districts = (selectedState === "__all__")
+                ? Array.from(new Set(DATA.map((d) => d.District))).sort()
+                : Array.from(new Set(DATA.filter((r) => r.State === selectedState).map((r) => r.District))).sort();
 
             if (!districts.length) {
-                districts = (selectedState === "__all__")
-                    ? Array.from(new Set(DATA.map((d) => d.District))).sort()
-                    : Array.from(new Set(DATA.filter((r) => r.State === selectedState).map((r) => r.District))).sort();
+                try {
+                    districts = await window.ApiClient.getDistricts(selectedState === "__all__" ? "all" : selectedState);
+                } catch (e) {
+                    districts = [];
+                }
             }
 
             for (const district of districts) {
@@ -2907,17 +2906,19 @@
             const individualOptGroup = document.createElement("optgroup");
             individualOptGroup.label = "Individual Crimes";
             let crimeTypeData = [];
-            try {
-                crimeTypeData = await window.ApiClient.getCrimeTypes();
-            } catch (e) {
-                crimeTypeData = [];
-            }
-
-            if (!crimeTypeData.length && DATA.length) {
+            if (DATA.length) {
                 const exclude = new Set(["State", "District", "Year", "Total"]);
                 crimeTypeData = Object.keys(DATA[0])
                     .filter((key) => !exclude.has(key) && typeof DATA[0][key] === "number")
                     .map((key) => ({ key, label: formatCrimeLabel(key) }));
+            }
+
+            if (!crimeTypeData.length) {
+                try {
+                    crimeTypeData = await window.ApiClient.getCrimeTypes();
+                } catch (e) {
+                    crimeTypeData = [];
+                }
             }
 
             CRIME_TYPES = crimeTypeData.map((ct) => ct.key);
@@ -4450,27 +4451,25 @@
                 UI.particleBackground();
 
                 const status = document.getElementById("loadingStatus");
+                const overlay = document.getElementById("loadingOverlay");
 
                 status.textContent = "Connecting to backend...";
                 DATA = await window.ApiClient.getDashboardData();
 
-                status.textContent = "Analyzing historical indices...";
+                status.textContent = "Preparing filters and controls...";
                 await initFilters();
 
-                status.textContent = "Rendering geographical matrix...";
+                status.textContent = "Rendering the dashboard...";
                 initMap();
-
-                status.textContent = "Booting interactive engine...";
                 initUIEvents();
 
-                // Final render
+                status.textContent = "Finalizing the first view...";
                 await resetFilters();
 
-                // Reveal elements after small delay to show off background
-                setTimeout(() => {
-                    document.getElementById("loadingOverlay").classList.add("hidden");
+                window.requestAnimationFrame(() => {
+                    overlay?.classList.add("hidden");
                     UI.toast("Dashboard Ready", "🚀");
-                }, 1200);
+                });
 
                 window.ApiClient.getProjectionDataset(2025)
                     .then(async (rows) => {
