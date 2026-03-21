@@ -2,7 +2,14 @@
  * API Client for interacting with the Python Flask Backend
  */
 
-const API_URL = 'http://127.0.0.1:5000/api';
+const isLocalSplitDev =
+    (window.location.protocol === 'file:') ||
+    ((window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') &&
+        window.location.port === '8000');
+
+const API_URL = isLocalSplitDev
+    ? 'http://127.0.0.1:5000/api'
+    : `${window.location.origin}/api`;
 
 const ApiClient = {
     /**

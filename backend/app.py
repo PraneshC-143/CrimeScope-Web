@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 import threading
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 
 try:
@@ -11,6 +11,9 @@ try:
     has_sklearn = True
 except ImportError:
     has_sklearn = False
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
+FRONTEND_ROOT = os.path.join(PROJECT_ROOT, "CrimeScope-Web")
 
 app = Flask(__name__)
 # Enable CORS so the HTML frontend can query the Python API seamlessly
@@ -23,12 +26,12 @@ _PROJECTION_RECORD_CACHE = {}
 _PROJECTION_WARMING = set()
 
 DEFAULT_PROJECTION_END_YEAR = 2025
-PROJECTION_CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "cache")
+PROJECTION_CACHE_DIR = os.path.join(PROJECT_ROOT, "data", "cache")
 OFFICIAL_2023_CANDIDATES = [
-    os.path.join(os.path.dirname(os.path.dirname(__file__)), "official-crime-data-2023.csv"),
-    os.path.join(os.path.dirname(os.path.dirname(__file__)), "official-crime-data-2023.xlsx"),
-    os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "official", "official-crime-data-2023.csv"),
-    os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "official", "official-crime-data-2023.xlsx"),
+    os.path.join(PROJECT_ROOT, "official-crime-data-2023.csv"),
+    os.path.join(PROJECT_ROOT, "official-crime-data-2023.xlsx"),
+    os.path.join(PROJECT_ROOT, "data", "official", "official-crime-data-2023.csv"),
+    os.path.join(PROJECT_ROOT, "data", "official", "official-crime-data-2023.xlsx"),
 ]
 
 
@@ -318,7 +321,7 @@ def get_data():
     if _DATA_CACHE is not None:
         return _DATA_CACHE
         
-    data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "districtwise-ipc-crimes.xlsx")
+    data_path = os.path.join(PROJECT_ROOT, "districtwise-ipc-crimes.xlsx")
     if not os.path.exists(data_path):
         return None
         
@@ -592,6 +595,20 @@ def get_projections_dataset():
     return jsonify(records)
 
 
+@app.route('/', methods=['GET'])
+def serve_index():
+    return send_from_directory(FRONTEND_ROOT, 'index.html')
+
+
+@app.route('/<path:path>', methods=['GET'])
+def serve_frontend(path):
+    target_path = os.path.join(FRONTEND_ROOT, path)
+    if os.path.isfile(target_path):
+        return send_from_directory(FRONTEND_ROOT, path)
+    return send_from_directory(FRONTEND_ROOT, 'index.html')
+
+
 if __name__ == '__main__':
-    print("Starting CrimeScope API Backend on port 5000...")
-    app.run(debug=False, use_reloader=False, port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    print(f"Starting CrimeScope API Backend on port {port}...")
+    app.run(host='0.0.0.0', debug=False, use_reloader=False, port=port)
