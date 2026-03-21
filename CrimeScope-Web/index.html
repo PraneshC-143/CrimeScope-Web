@@ -3294,9 +3294,9 @@
             const pageHeight = 842;
             const margin = 44;
             const contentWidth = pageWidth - (margin * 2);
-            const tableWidths = [46, 98, 150, 84, 74];
+            const tableWidths = [52, 170, 90, 85, 70];
             const pages = [];
-            const topRows = report.previewRows || [];
+            const yearlyRows = report.previewRows || [];
 
             function wrapPdfText(text, maxChars) {
                 const normalized = String(text ?? "").replace(/\s+/g, " ").trim();
@@ -3373,13 +3373,6 @@
                 addOp(page, "ET");
             }
 
-            function drawWrappedText(page, text, x, y, maxChars, options = {}) {
-                const lines = wrapPdfText(text, maxChars);
-                const lineHeight = options.lineHeight || ((options.size || 11) + 4);
-                lines.forEach((line, idx) => drawText(page, line, x, y - (idx * lineHeight), options));
-                return lines.length * lineHeight;
-            }
-
             function ensureSpace(heightNeeded) {
                 const page = currentPage();
                 if (page.y - heightNeeded < margin) {
@@ -3453,9 +3446,67 @@
                 page.y -= boxHeight + 12;
             }
 
+            function drawTrendBars(series) {
+                if (!series.length) return;
+                const boxHeight = 180;
+                const page = ensureSpace(boxHeight + 10);
+                const chartX = margin + 20;
+                const chartY = page.y - 34;
+                const chartWidth = contentWidth - 40;
+                const chartHeight = 104;
+                const maxValue = Math.max(...series.map((item) => item.value), 1);
+                const barGap = 10;
+                const barWidth = Math.max(18, (chartWidth - (barGap * (series.length - 1))) / Math.max(series.length, 1));
+
+                drawRect(page, margin, page.y - boxHeight, contentWidth, boxHeight, "#ffffff", "#e2e8f0");
+                drawText(page, "Visual Trend", margin + 14, page.y - 20, { size: 10, color: "#0f172a", font: "F2" });
+                drawText(page, "Yearly incidents across the selected view", margin + 14, page.y - 34, { size: 8, color: "#64748b" });
+                drawRect(page, chartX, chartY - chartHeight, chartWidth, 0.8, "#cbd5e1");
+
+                series.forEach((item, idx) => {
+                    const x = chartX + idx * (barWidth + barGap);
+                    const height = maxValue > 0 ? (item.value / maxValue) * (chartHeight - 10) : 0;
+                    const isProjected = PROJECTED_YEARS.includes(item.year);
+                    drawRect(page, x, chartY - height, barWidth, height, isProjected ? "#f59e0b" : "#6366f1");
+                    drawText(page, String(item.year), x + 1, chartY - chartHeight - 14, { size: 7, color: "#64748b" });
+                    drawText(page, formatInt(item.value), x - 2, chartY - height - 12, { size: 7, color: "#334155" });
+                });
+
+                drawText(page, "Actual", margin + 14, page.y - boxHeight + 18, { size: 8, color: "#334155" });
+                drawRect(page, margin + 48, page.y - boxHeight + 12, 10, 10, "#6366f1");
+                drawText(page, "Estimated", margin + 80, page.y - boxHeight + 18, { size: 8, color: "#334155" });
+                drawRect(page, margin + 130, page.y - boxHeight + 12, 10, 10, "#f59e0b");
+
+                page.y -= boxHeight + 12;
+            }
+
+            function drawCategoryBars(distribution) {
+                if (!distribution.length) return;
+                const rows = distribution.slice(0, 5);
+                const boxHeight = 44 + rows.length * 24;
+                const page = ensureSpace(boxHeight + 10);
+                const maxValue = Math.max(...rows.map((item) => item.value), 1);
+
+                drawRect(page, margin, page.y - boxHeight, contentWidth, boxHeight, "#ffffff", "#e2e8f0");
+                drawText(page, "Crime Mix", margin + 14, page.y - 20, { size: 10, color: "#0f172a", font: "F2" });
+                drawText(page, "Top categories in the current selection", margin + 14, page.y - 34, { size: 8, color: "#64748b" });
+
+                rows.forEach((item, idx) => {
+                    const y = page.y - 56 - idx * 24;
+                    const label = wrapPdfText(item.label, 24)[0];
+                    const width = Math.max(8, ((item.value / maxValue) * (contentWidth - 210)));
+                    drawText(page, label, margin + 14, y, { size: 9, color: "#334155" });
+                    drawRect(page, margin + 160, y - 8, contentWidth - 220, 8, "#e2e8f0");
+                    drawRect(page, margin + 160, y - 8, width, 8, "#ef4444");
+                    drawText(page, formatInt(item.value), pageWidth - margin - 54, y, { size: 8, color: "#0f172a", font: "F2" });
+                });
+
+                page.y -= boxHeight + 12;
+            }
+
             function drawTableHeader(page, y) {
                 drawRect(page, margin, y - 20, contentWidth, 22, "#e2e8f0");
-                const headers = ["Year", "State", "District", "Value", "Type"];
+                const headers = ["Year", "Scope", "Incidents", "Change", "Type"];
                 let x = margin + 8;
                 headers.forEach((header, idx) => {
                     drawText(page, header, x, y - 14, { size: 9, color: "#0f172a", font: "F2" });
@@ -3463,14 +3514,9 @@
                 });
             }
 
-            function rowValueForPdf(row, crimeType) {
-                if (crimeType === "__all__") return parseInt(row.Total || 0, 10) || 0;
-                return parseInt(row[crimeType] || 0, 10) || 0;
-            }
-
             function drawPreviewTable(rows, crimeType) {
                 let page = ensureSpace(96);
-                drawSectionTitle("Data Preview", "Top rows from the current filtered view");
+                drawSectionTitle("Yearly Summary", "One clean row per year in the current filtered view");
                 page = currentPage();
                 drawTableHeader(page, page.y);
                 page.y -= 30;
@@ -3479,24 +3525,24 @@
                     if (page.y - 24 < margin) {
                         page = newPage();
                         drawHeader(page);
-                        drawSectionTitle("Data Preview", "Continued");
+                        drawSectionTitle("Yearly Summary", "Continued");
                         page = currentPage();
                         drawTableHeader(page, page.y);
                         page.y -= 30;
                     }
 
-                    const kind = row.IsProjected ? "Estimated" : "Actual";
-                    drawRect(page, margin, page.y - 18, contentWidth, 20, row.IsProjected ? "#fff7ed" : "#ffffff", "#e2e8f0", 0.8);
+                    const kind = row.isProjected ? "Estimated" : "Actual";
+                    drawRect(page, margin, page.y - 18, contentWidth, 20, row.isProjected ? "#fff7ed" : "#ffffff", "#e2e8f0", 0.8);
                     const cells = [
-                        String(row.Year ?? ""),
-                        String(row.State ?? ""),
-                        String(row.District ?? ""),
-                        formatInt(rowValueForPdf(row, crimeType)),
+                        String(row.year ?? ""),
+                        String(row.scopeLabel ?? ""),
+                        formatInt(row.value ?? 0),
+                        row.changeText ?? "—",
                         kind
                     ];
                     let x = margin + 8;
                     cells.forEach((cell, idx) => {
-                        const maxChars = idx === 2 ? 24 : idx === 1 ? 15 : 10;
+                        const maxChars = idx === 1 ? 28 : idx === 2 ? 12 : 10;
                         const clipped = wrapPdfText(cell, maxChars)[0];
                         drawText(page, clipped, x, page.y - 12, { size: 9, color: "#1e293b" });
                         x += tableWidths[idx];
@@ -3529,8 +3575,10 @@
                 `Prepared by CrimeScope for quick review and sharing.`
             ]);
 
+            drawTrendBars(report.series);
             drawTrendGrid(report.series);
-            drawPreviewTable(topRows, report.scope.crimeTypeKey);
+            drawCategoryBars(report.distribution);
+            drawPreviewTable(yearlyRows, report.scope.crimeTypeKey);
 
             const objects = [];
             const addObject = (body) => {
@@ -3580,6 +3628,21 @@
             download("crimescope_export.csv", toCSV(rows), "text/csv;charset=utf-8");
         }
 
+        function buildPdfYearlySummary(rows, crimeType) {
+            const scopeLabel = `${state.filters.state === "__all__" ? "All states" : state.filters.state}${state.filters.district === "__all__" ? "" : ` / ${state.filters.district}`}`;
+            const series = seriesByYear(rows, crimeType);
+            return series.map((item, index) => {
+                const prev = index > 0 ? series[index - 1].value : null;
+                return {
+                    year: item.year,
+                    scopeLabel,
+                    value: item.value,
+                    isProjected: PROJECTED_YEARS.includes(item.year),
+                    changeText: prev === null ? "—" : formatSignedInt(item.value - prev)
+                };
+            });
+        }
+
         function exportCurrentPDF() {
             const rows = applyCurrentFilters();
             const f = state.filters;
@@ -3591,7 +3654,9 @@
             const location = `${f.state === "__all__" ? "All states" : f.state}${f.district === "__all__" ? "" : ` / ${f.district}`}`;
             const yoyText = isFinite(yoy.pct) ? formatPct(yoy.pct) : "Not available";
             const yoyNote = isFinite(yoy.pct) ? `${yoy.y1} to ${yoy.y2}` : "Not enough yearly history";
-            const previewRows = rows.slice(0, Math.min(rows.length, 18));
+            const isEstimateEnabled = !!$("#predictionToggle")?.checked;
+            const previewRows = buildPdfYearlySummary(rows, f.crimeType).slice(0, 18);
+            const distribution = crimeTypeDistribution(rows).slice(0, 5);
             const report = {
                 generatedAt: new Date().toLocaleString(),
                 rowCount: rows.length,
@@ -3600,14 +3665,15 @@
                 yoyNote,
                 dominant: `${dom.label} (${formatInt(dom.value)})`,
                 series,
+                distribution,
                 previewRows,
-                narrative: `This report covers ${ct.toLowerCase()} for ${location.toLowerCase()} from ${f.yearFrom} to ${f.yearTo}. The current view contains ${formatInt(total)} incidents across ${formatInt(rows.length)} records, and the strongest crime category in this view is ${dom.label}.`,
+                narrative: `This report covers ${ct} for ${location} from ${f.yearFrom} to ${f.yearTo}. The current view contains ${formatInt(total)} incidents across ${formatInt(rows.length)} records, and the strongest crime category in this view is ${dom.label}.`,
                 scope: {
                     crimeType: ct,
                     crimeTypeKey: f.crimeType,
                     location,
                     yearRange: `${f.yearFrom} to ${f.yearTo}`,
-                    mode: state.predictionEnabled ? "Actual data with future estimates enabled" : "Actual data only"
+                    mode: isEstimateEnabled ? "Actual data with future estimates enabled" : "Actual data only"
                 }
             };
             download("crimescope_export.pdf", buildProfessionalPdf(report), "application/pdf");
