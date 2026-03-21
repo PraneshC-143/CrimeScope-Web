@@ -5,13 +5,6 @@ import threading
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 
-try:
-    from sklearn.linear_model import LinearRegression
-    from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-    has_sklearn = True
-except ImportError:
-    has_sklearn = False
-
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 FRONTEND_ROOT = os.path.join(PROJECT_ROOT, "CrimeScope-Web")
 
@@ -35,6 +28,15 @@ OFFICIAL_2023_CANDIDATES = [
     os.path.join(PROJECT_ROOT, "data", "official", "official-crime-data-2023.csv"),
     os.path.join(PROJECT_ROOT, "data", "official", "official-crime-data-2023.xlsx"),
 ]
+
+
+def get_sklearn_models():
+    try:
+        from sklearn.linear_model import LinearRegression
+        from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+        return True, LinearRegression, RandomForestRegressor, GradientBoostingRegressor
+    except ImportError:
+        return False, None, None, None
 
 
 def projection_cache_file(end_year):
@@ -190,6 +192,7 @@ def build_features(years):
 def build_prediction_payload(years, totals, target_year):
     years = np.asarray(years, dtype=int)
     totals = np.asarray(totals, dtype=float)
+    has_sklearn, LinearRegression, RandomForestRegressor, GradientBoostingRegressor = get_sklearn_models()
 
     if len(years) == 0:
         return {
@@ -417,6 +420,7 @@ def get_data():
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
+    has_sklearn, _, _, _ = get_sklearn_models()
     return jsonify({"status": "healthy", "ml_enabled": has_sklearn})
 
 
