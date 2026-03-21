@@ -27,6 +27,8 @@ _PROJECTION_WARMING = set()
 
 DEFAULT_PROJECTION_END_YEAR = 2025
 PROJECTION_CACHE_DIR = os.path.join(PROJECT_ROOT, "data", "cache")
+NORMALIZED_DATA_CACHE_CSV = os.path.join(PROJECTION_CACHE_DIR, "normalized_dataset.csv")
+DASHBOARD_DATASET_CACHE_JSON = os.path.join(PROJECTION_CACHE_DIR, "dashboard_dataset.json")
 OFFICIAL_2023_CANDIDATES = [
     os.path.join(PROJECT_ROOT, "official-crime-data-2023.csv"),
     os.path.join(PROJECT_ROOT, "official-crime-data-2023.xlsx"),
@@ -37,6 +39,10 @@ OFFICIAL_2023_CANDIDATES = [
 
 def projection_cache_file(end_year):
     return os.path.join(PROJECTION_CACHE_DIR, f"projections_dataset_{int(end_year)}.json")
+
+
+def ensure_cache_dir():
+    os.makedirs(PROJECTION_CACHE_DIR, exist_ok=True)
 
 
 def weighted_mean(values):
@@ -315,33 +321,95 @@ def load_optional_official_2023(crime_cols):
             continue
     return None, None
 
+
+def build_dashboard_records(df):
+    export_df = df.copy()
+    export_df["is_projected"] = False
+    export_df["data_stage"] = "actual"
+
+    rename_map = {
+        'state_name': 'State',
+        'district_name': 'District',
+        'year': 'Year',
+        'total_crimes': 'Total',
+        'is_projected': 'IsProjected',
+        'data_stage': 'DataStage'
+    }
+
+    export_df.rename(columns=rename_map, inplace=True)
+    export_df.fillna(0, inplace=True)
+    return export_df.to_dict(orient='records')
+
+
+def write_dashboard_cache(records):
+    try:
+        ensure_cache_dir()
+        pd.DataFrame(records).to_json(DASHBOARD_DATASET_CACHE_JSON, orient='records')
+    except Exception:
+        pass
+
+
+def load_cached_dashboard_json_text():
+    if not os.path.exists(DASHBOARD_DATASET_CACHE_JSON):
+        return None
+    try:
+        with open(DASHBOARD_DATASET_CACHE_JSON, "r", encoding="utf-8") as handle:
+            return handle.read()
+    except Exception:
+        return None
+
+
+def load_cached_dashboard_records():
+    if not os.path.exists(DASHBOARD_DATASET_CACHE_JSON):
+        return None
+    try:
+        return pd.read_json(DASHBOARD_DATASET_CACHE_JSON).to_dict(orient='records')
+    except Exception:
+        return None
+
 def get_data():
     """Load and preprocess the dataset"""
     global _DATA_CACHE
     if _DATA_CACHE is not None:
         return _DATA_CACHE
-        
-    data_path = os.path.join(PROJECT_ROOT, "districtwise-ipc-crimes.xlsx")
-    if not os.path.exists(data_path):
-        return None
-        
-    df = pd.read_excel(data_path, sheet_name="districtwise-ipc-crimes")
-    cols_to_drop = ["id", "state_code", "district_code", "registration_circles"]
-    df.drop(columns=[col for col in cols_to_drop if col in df.columns], inplace=True)
-    df["year"] = df["year"].astype(int)
 
-    # Keep numeric aggregations limited to actual crime metrics, not admin/meta fields.
-    excluded_numeric = {"year", "registration_circles"}
+    if os.path.exists(NORMALIZED_DATA_CACHE_CSV):
+        df = pd.read_csv(NORMALIZED_DATA_CACHE_CSV)
+    else:
+        data_path = os.path.join(PROJECT_ROOT, "districtwise-ipc-crimes.xlsx")
+        if not os.path.exists(data_path):
+            return None
+
+        df = pd.read_excel(data_path, sheet_name="districtwise-ipc-crimes")
+        cols_to_drop = ["id", "state_code", "district_code", "registration_circles"]
+        df.drop(columns=[col for col in cols_to_drop if col in df.columns], inplace=True)
+        df["year"] = df["year"].astype(int)
+
+        # Keep numeric aggregations limited to actual crime metrics, not admin/meta fields.
+        excluded_numeric = {"year", "registration_circles"}
+        crime_cols = [col for col in df.select_dtypes(include="number").columns if col not in excluded_numeric]
+        df[crime_cols] = df[crime_cols].fillna(0)
+
+        official_2023_df, _ = load_optional_official_2023(crime_cols)
+        if official_2023_df is not None:
+            df = df[df["year"] != 2023].copy()
+            df = pd.concat([df, official_2023_df], ignore_index=True)
+
+        df = df.copy()
+        df["total_crimes"] = df[crime_cols].sum(axis=1)
+        try:
+            ensure_cache_dir()
+            df.to_csv(NORMALIZED_DATA_CACHE_CSV, index=False)
+        except Exception:
+            pass
+
+    df["year"] = pd.to_numeric(df["year"], errors="coerce").astype(int)
+    excluded_numeric = {"year", "registration_circles", "total_crimes"}
     crime_cols = [col for col in df.select_dtypes(include="number").columns if col not in excluded_numeric]
-    df[crime_cols] = df[crime_cols].fillna(0)
-
-    official_2023_df, _ = load_optional_official_2023(crime_cols)
-    if official_2023_df is not None:
-        df = df[df["year"] != 2023].copy()
-        df = pd.concat([df, official_2023_df], ignore_index=True)
-
-    df = df.copy()
-    df["total_crimes"] = df[crime_cols].sum(axis=1)
+    df[crime_cols] = df[crime_cols].apply(pd.to_numeric, errors="coerce").fillna(0)
+    if "total_crimes" not in df.columns:
+        df = df.copy()
+        df["total_crimes"] = df[crime_cols].sum(axis=1)
 
     _DATA_CACHE = (df, crime_cols)
     warm_projection_cache_async(df, crime_cols, DEFAULT_PROJECTION_END_YEAR)
@@ -549,26 +617,16 @@ def get_dataset():
     data = get_data()
     if not data:
          return jsonify([]), 404
-         
-    df, _ = data
-    
-    export_df = df.copy()
-    export_df["is_projected"] = False
-    export_df["data_stage"] = "actual"
-    
-    rename_map = {
-        'state_name': 'State',
-        'district_name': 'District',
-        'year': 'Year',
-        'total_crimes': 'Total',
-        'is_projected': 'IsProjected',
-        'data_stage': 'DataStage'
-    }
-    
-    export_df.rename(columns=rename_map, inplace=True)
-    export_df.fillna(0, inplace=True)
-    
-    records = export_df.to_dict(orient='records')
+
+    cached_json = load_cached_dashboard_json_text()
+    if cached_json is not None:
+        return app.response_class(cached_json, mimetype='application/json')
+
+    records = load_cached_dashboard_records()
+    if records is None:
+        df, _ = data
+        records = build_dashboard_records(df)
+        write_dashboard_cache(records)
     return jsonify(records)
 
 
