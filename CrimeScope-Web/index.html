@@ -4,9 +4,10 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CrimeScope — Modern Crime Analytics (India 2017–2025)</title>
+    <title>INDIA CRIME ANALYTICS WEB-BASED DASHBOARD USING DATA VISUALIZATION AND MACHINE LEARNING</title>
     <meta name="description"
         content="CrimeScope: Modern, responsive crime analytics dashboard for India (2017–2025) with filters, interactive charts, forecast overlays, table export, and a choropleth-style map." />
+    <meta name="crimescope-api" content="" />
     <!-- Favicon -->
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23dc2626'/><text x='50%25' y='60%25' text-anchor='middle' fill='white' font-size='18' font-family='sans-serif' font-weight='bold'>C</text></svg>" />
@@ -554,34 +555,73 @@
         }
 
         @keyframes pulseHalo {
-            0%, 100% { transform: scale(0.94); opacity: 0.6; }
-            50% { transform: scale(1.06); opacity: 1; }
+
+            0%,
+            100% {
+                transform: scale(0.94);
+                opacity: 0.6;
+            }
+
+            50% {
+                transform: scale(1.06);
+                opacity: 1;
+            }
         }
 
         @keyframes spinOrbitA {
-            from { transform: rotateX(70deg) rotateZ(0deg); }
-            to { transform: rotateX(70deg) rotateZ(360deg); }
+            from {
+                transform: rotateX(70deg) rotateZ(0deg);
+            }
+
+            to {
+                transform: rotateX(70deg) rotateZ(360deg);
+            }
         }
 
         @keyframes spinOrbitB {
-            from { transform: rotateY(72deg) rotateZ(360deg); }
-            to { transform: rotateY(72deg) rotateZ(0deg); }
+            from {
+                transform: rotateY(72deg) rotateZ(360deg);
+            }
+
+            to {
+                transform: rotateY(72deg) rotateZ(0deg);
+            }
         }
 
         @keyframes spinOrbitC {
-            from { transform: rotateX(72deg) rotateY(22deg) rotateZ(0deg); }
-            to { transform: rotateX(72deg) rotateY(22deg) rotateZ(360deg); }
+            from {
+                transform: rotateX(72deg) rotateY(22deg) rotateZ(0deg);
+            }
+
+            to {
+                transform: rotateX(72deg) rotateY(22deg) rotateZ(360deg);
+            }
         }
 
         @keyframes floatCore {
-            0%, 100% { transform: translateZ(40px) rotateX(14deg) rotateY(-16deg) translateY(0px); }
-            50% { transform: translateZ(58px) rotateX(10deg) rotateY(-10deg) translateY(-10px); }
+
+            0%,
+            100% {
+                transform: translateZ(40px) rotateX(14deg) rotateY(-16deg) translateY(0px);
+            }
+
+            50% {
+                transform: translateZ(58px) rotateX(10deg) rotateY(-10deg) translateY(-10px);
+            }
         }
 
         @keyframes progressSweep {
-            0% { transform: translateX(-120%); }
-            50% { transform: translateX(120%); }
-            100% { transform: translateX(260%); }
+            0% {
+                transform: translateX(-120%);
+            }
+
+            50% {
+                transform: translateX(120%);
+            }
+
+            100% {
+                transform: translateX(260%);
+            }
         }
 
         .loader-dots span {
@@ -818,8 +858,15 @@
         }
 
         @keyframes driftOrb {
-            0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
-            50% { transform: translate3d(-24px, 12px, 0) rotate(8deg); }
+
+            0%,
+            100% {
+                transform: translate3d(0, 0, 0) rotate(0deg);
+            }
+
+            50% {
+                transform: translate3d(-24px, 12px, 0) rotate(8deg);
+            }
         }
 
         .premium-surface {
@@ -991,10 +1038,12 @@
                     <div class="loading-core-mark">C</div>
                 </div>
             </div>
-            <div class="loading-title">CrimeScope</div>
-            <div class="loading-subtitle">Preparing a premium crime intelligence workspace with live filters, forecast layers, and district analytics.</div>
+            <div class="loading-title">INDIA CRIME ANALYTICS WEB-BASED DASHBOARD USING DATA VISUALIZATION AND MACHINE LEARNING</div>
+            <div class="loading-subtitle">Preparing a premium crime intelligence workspace with live filters, forecast
+                layers, and district analytics.</div>
             <div class="loading-progress"></div>
-            <div style="font-size:0.92rem;color:var(--muted);margin-bottom:1rem" id="loadingStatus">Initializing interactive intelligence engine…</div>
+            <div style="font-size:0.92rem;color:var(--muted);margin-bottom:1rem" id="loadingStatus">Initializing
+                interactive intelligence engine…</div>
             <div class="loader-dots"><span style="background:var(--brand)"></span><span
                     style="background:var(--brand)"></span><span style="background:var(--brand)"></span></div>
         </div>
@@ -1002,6 +1051,21 @@
 
     <!-- ─── TOAST CONTAINER ─────────────────────────── -->
     <div id="toastContainer"></div>
+
+    <div id="apiErrorBanner"
+        class="hidden pointer-events-auto fixed inset-x-4 bottom-6 sm:bottom-10 sm:left-auto sm:right-auto max-w-3xl mx-auto rounded-2xl border border-rose-500/70 bg-rose-500/10 backdrop-blur-sm shadow-2xl z-50">
+        <div class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <p id="apiErrorTitle" class="text-sm font-semibold text-white">Back-end connection required</p>
+                <p id="apiErrorMessage" class="text-xs text-white/80">
+                    CrimeScope API is unreachable. Please verify that the Python backend is deployed and accessible.
+                </p>
+            </div>
+            <div class="flex gap-2">
+                <button id="apiErrorRetry" class="btn btn-primary px-3 py-1 text-xs">Retry</button>
+            </div>
+        </div>
+    </div>
 
     <!-- ─── BACK TO TOP ─────────────────────────────── -->
     <button id="backToTop" title="Back to top" aria-label="Back to top">
@@ -1074,8 +1138,8 @@
                             </svg>
                         </div>
                         <div>
-                            <div class="text-base font-semibold leading-5">CrimeScope</div>
-                            <div class="text-xs muted2 -mt-0.5">India Crime Analytics • 2017–2025</div>
+                            <div class="text-sm font-semibold leading-5 max-w-[22rem]">INDIA CRIME ANALYTICS WEB-BASED DASHBOARD USING DATA VISUALIZATION AND MACHINE LEARNING</div>
+                            <div class="text-xs muted2 -mt-0.5">District-level analysis and planning support</div>
                         </div>
                     </div>
                 </div>
@@ -1132,7 +1196,8 @@
                     <h1 class="mt-4 text-4xl sm:text-6xl font-bold tracking-tight leading-[1.1] font-['Inter Tight']">
                         Professional crime intelligence for
                         <span
-                            class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-sky-300 to-cyan-300">clearer decisions</span>
+                            class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-sky-300 to-cyan-300">clearer
+                            decisions</span>
                         across states, districts, and forecast horizons.
                     </h1>
 
@@ -1193,7 +1258,8 @@
                                     </div>
                                 </div>
                                 <div id="heroTotalCrimes" class="text-3xl font-bold text-white tracking-tight">—</div>
-                                <div class="mt-3 text-xs text-slate-500 font-medium">Actual recorded data, extended when future estimates are turned on</div>
+                                <div class="mt-3 text-xs text-slate-500 font-medium">Actual recorded data, extended when
+                                    future estimates are turned on</div>
                             </div>
                         </div>
 
@@ -1203,15 +1269,15 @@
                                 <div class="text-[11px] uppercase tracking-wider font-semibold text-indigo-400/80 mb-1">
                                     Future Estimate</div>
                                 <div class="text-xs text-white/90 font-medium mt-1">Include estimated future years</div>
-                                <div class="text-[10px] text-slate-500 mt-1">Combine actual data with estimated values for 2023-2025</div>
+                                <div class="text-[10px] text-slate-500 mt-1">Combine actual data with estimated values
+                                    for 2023-2025</div>
                             </div>
                             <div class="mt-4 flex items-center justify-between">
                                 <span class="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">Status:
-                                    Active</span>
+                                    <span id="predictionToggleStatus">Active</span></span>
                                 <div
                                     class="relative inline-block w-10 h-6 align-middle select-none transition duration-200 ease-in">
-                                    <input type="checkbox" name="togglePrediction" id="predictionToggle"
-                                        checked
+                                    <input type="checkbox" name="togglePrediction" id="predictionToggle" checked
                                         class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-none appearance-none cursor-pointer left-1 top-1 transition-transform duration-200 z-10" />
                                     <label for="predictionToggle"
                                         class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-800 cursor-pointer border border-white/10"></label>
@@ -1598,11 +1664,11 @@
                                                 stroke-linecap="round" stroke-linejoin="round" />
                                         </svg>
                                     </span>
-                                    Forecast Engine
+                                    Projection Snapshot
                                 </div>
                                 <div class="mt-3 flex flex-wrap items-center gap-3 text-xs">
                                     <span class="pill border-indigo-400/20 bg-indigo-500/10 text-indigo-200">2023–2025
-                                        modeled horizon</span>
+                                        projected horizon</span>
                                     <span class="pill border-emerald-400/20 bg-emerald-500/10 text-emerald-200">Actual
                                         data held through 2022</span>
                                 </div>
@@ -1614,8 +1680,8 @@
                                             class="mt-2 w-24 rounded-2xl border border-white/10 bg-slate-950/60 px-3 py-2 text-center text-2xl font-semibold text-white focus:border-indigo-400/40 focus:outline-none">
                                     </div>
                                     <div class="text-xs text-slate-400 leading-5 max-w-sm">
-                                        Model-aware projection based on trend slope, ensemble drift, and historical
-                                        volatility. Use it as a planning signal, not raw source data.
+                                        Planning estimate based on historical movement. Use it as guidance, not as
+                                        official reported data.
                                     </div>
                                 </div>
                             </div>
@@ -1626,10 +1692,11 @@
                                     </div>
                                     <div id="kpiPrediction"
                                         class="mt-3 text-3xl font-bold text-indigo-300 tracking-tight">—</div>
-                                    <div class="mt-2 text-xs text-slate-400">Forecast for selected state scope</div>
+                                    <div class="mt-2 text-xs text-slate-400">Snapshot for selected state scope</div>
                                 </div>
                                 <div class="rounded-3xl border border-white/8 bg-slate-950/55 p-4">
-                                    <div class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Change From Last Year
+                                    <div class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Change From Last
+                                        Year
                                     </div>
                                     <div id="predictDelta" class="mt-3 text-2xl font-semibold text-white">—</div>
                                     <div id="predictTrend" class="mt-2 text-xs text-slate-400">Awaiting forecast</div>
@@ -1647,13 +1714,16 @@
                         <div
                             class="mt-5 grid grid-cols-1 xl:grid-cols-[1.4fr_0.9fr] gap-4 border-t border-white/6 pt-5">
                             <div>
-                                <div class="text-[11px] uppercase tracking-[0.24em] text-slate-500">How This Estimate Is Read</div>
+                                <div class="text-[11px] uppercase tracking-[0.24em] text-slate-500">Forecast Summary
+                                </div>
                                 <div id="predictNarrative" class="mt-2 text-sm text-slate-300 leading-6">
-                                    A simple explanation of the current estimate will appear here once the dashboard loads this view.
+                                    A simple explanation of the current estimate will appear here once the dashboard
+                                    loads this view.
                                 </div>
                             </div>
                             <div class="rounded-3xl border border-white/8 bg-white/[0.03] p-4">
-                                <div class="text-[11px] uppercase tracking-[0.24em] text-slate-500">Estimate Details</div>
+                                <div class="text-[11px] uppercase tracking-[0.24em] text-slate-500">Forecast Inputs
+                                </div>
                                 <div class="mt-2 flex flex-wrap gap-2">
                                     <span id="predictModel"
                                         class="pill border-indigo-400/20 bg-indigo-500/10 text-indigo-200">—</span>
@@ -1996,11 +2066,11 @@
                 }
             },
 
-            initTiltCards() {
-                document.querySelectorAll(".glass, .glass-strong").forEach(card => {
-                    card.classList.add("tilt-card");
-                    card.addEventListener("mousemove", (e) => {
-                        const rect = card.getBoundingClientRect();
+        initTiltCards() {
+            document.querySelectorAll(".glass, .glass-strong").forEach(card => {
+                card.classList.add("tilt-card");
+                card.addEventListener("mousemove", (e) => {
+                    const rect = card.getBoundingClientRect();
                         const x = e.clientX - rect.left;
                         const y = e.clientY - rect.top;
                         const rx = (y / rect.height - 0.5) * 9;
@@ -2011,10 +2081,27 @@
                     });
                     card.addEventListener("mouseleave", () => {
                         card.style.transform = `perspective(1200px) rotateX(0deg) rotateY(0deg) translate3d(0,0,0)`;
-                    });
                 });
-            }
-        };
+            });
+        }
+    };
+
+        const apiErrorBanner = document.getElementById("apiErrorBanner");
+        const apiErrorMessage = document.getElementById("apiErrorMessage");
+        const apiErrorRetry = document.getElementById("apiErrorRetry");
+
+        function showApiError(text) {
+            if (!apiErrorBanner || !apiErrorMessage) return;
+            apiErrorMessage.textContent = text;
+            apiErrorBanner.classList.remove("hidden");
+        }
+
+        function hideApiError() {
+            if (!apiErrorBanner) return;
+            apiErrorBanner.classList.add("hidden");
+        }
+
+        apiErrorRetry?.addEventListener("click", () => window.location.reload());
 
         // ─── Playback Engine ──────────────────────────────────
         let playbackInterval = null;
@@ -2523,6 +2610,7 @@
             "Theni": [9.8569, 77.4329],
             "Thiruvallur": [13.2353, 79.8101],
             "Tiruvannamalai": [12.4137, 79.1816],
+            "Tiruppur": [11.1085, 77.3411],
             "Thiruvarur": [10.6374, 79.5396],
             "Vellore": [12.721, 79.0865],
             "Villupuram": [11.9631, 79.3103],
@@ -2771,9 +2859,9 @@
                 if (deltaEl) deltaEl.textContent = "—";
                 if (confidenceEl) confidenceEl.textContent = "—";
                 if (trendEl) trendEl.textContent = "Turn on future estimates to compare beyond actual recorded data.";
-                if (narrativeEl) narrativeEl.textContent = "Estimated future rows are hidden right now. Turn on the switch to extend district-level estimates through 2025.";
+                if (narrativeEl) narrativeEl.textContent = "Turn on future estimates to view a planning projection beyond the recorded years.";
                 if (supportEl) supportEl.textContent = "Past data only";
-                if (componentsEl) componentsEl.textContent = "Prediction details are hidden while future estimates are turned off.";
+                if (componentsEl) componentsEl.textContent = "Model details appear when forecasting is enabled.";
                 if (stabilityEl) stabilityEl.textContent = "Trend strength —";
                 return;
             }
@@ -2784,9 +2872,9 @@
             if (deltaEl) deltaEl.textContent = "…";
             if (confidenceEl) confidenceEl.textContent = "…";
             if (trendEl) trendEl.textContent = "Updating estimate";
-            if (narrativeEl) narrativeEl.textContent = "The system is reviewing past movement and recent variation for the selected area.";
+            if (narrativeEl) narrativeEl.textContent = "Reviewing historical movement for the selected area.";
             if (supportEl) supportEl.textContent = "Loading…";
-            if (componentsEl) componentsEl.textContent = "Preparing prediction details…";
+            if (componentsEl) componentsEl.textContent = "Preparing model details…";
             if (stabilityEl) stabilityEl.textContent = "Trend strength —";
 
             try {
@@ -2811,19 +2899,22 @@
                     }
                     if (supportEl) {
                         const historyPoints = prediction.quality?.history_points || 0;
-                        supportEl.textContent = `${historyPoints} yearly observations`;
+                        supportEl.textContent = `${historyPoints} years of history`;
                     }
                     if (componentsEl) {
                         const components = Object.entries(prediction.ensemble_components || {})
-                            .map(([name, value]) => `${name}: ${formatInt(value)}`)
-                            .join(" • ");
-                        componentsEl.textContent = components || "Single-model forecast";
+                            .slice(0, 2)
+                            .map(([name, value]) => `${name}: ${formatInt(value)}`);
+                        const extraCount = Math.max(0, Object.keys(prediction.ensemble_components || {}).length - components.length);
+                        componentsEl.textContent = components.length
+                            ? `${components.join(" | ")}${extraCount ? ` | +${extraCount} more` : ""}`
+                            : "Single-model forecast";
                     }
                     if (narrativeEl) {
-                        const scopeLabel = state.filters.state === "__all__" ? "all-state national scope" : `${state.filters.state} scope`;
+                        const scopeLabel = state.filters.state === "__all__" ? "the national view" : state.filters.state;
                         const lastYear = prediction.historical_context?.last_year;
                         const lastYearCrimes = prediction.historical_context?.last_year_crimes || 0;
-                        narrativeEl.textContent = `For ${scopeLabel}, the engine projects ${formatInt(prediction.predicted_crimes)} incidents in ${prediction.target_year}. That is ${formatSignedInt(prediction.delta_from_last_year || 0)} relative to ${lastYear} (${formatInt(lastYearCrimes)}), with a working band of ${formatInt(prediction.confidence_low || 0)} to ${formatInt(prediction.confidence_high || 0)}.`;
+                        narrativeEl.textContent = `${scopeLabel} is projected at ${formatInt(prediction.predicted_crimes)} incidents in ${prediction.target_year}, compared with ${formatInt(lastYearCrimes)} in ${lastYear}.`;
                     }
                 } else {
                     predictionEl.textContent = "—";
@@ -2831,9 +2922,9 @@
                     if (deltaEl) deltaEl.textContent = "—";
                     if (confidenceEl) confidenceEl.textContent = "—";
                     if (trendEl) trendEl.textContent = "Forecast unavailable for the current scope.";
-                    if (narrativeEl) narrativeEl.textContent = "The forecast service returned no usable result for this scope.";
+                    if (narrativeEl) narrativeEl.textContent = "No forecast result is available for this selection.";
                     if (supportEl) supportEl.textContent = "Unavailable";
-                    if (componentsEl) componentsEl.textContent = "No component outputs returned.";
+                    if (componentsEl) componentsEl.textContent = "No model details returned.";
                     if (stabilityEl) stabilityEl.textContent = "Trend strength —";
                 }
             } catch (e) {
@@ -2843,9 +2934,9 @@
                 if (deltaEl) deltaEl.textContent = "—";
                 if (confidenceEl) confidenceEl.textContent = "—";
                 if (trendEl) trendEl.textContent = "Forecast unavailable for the current scope.";
-                if (narrativeEl) narrativeEl.textContent = "A forecast error occurred while evaluating the active selection.";
+                if (narrativeEl) narrativeEl.textContent = "The forecast could not be computed for the current selection.";
                 if (supportEl) supportEl.textContent = "Unavailable";
-                if (componentsEl) componentsEl.textContent = "No component outputs returned.";
+                if (componentsEl) componentsEl.textContent = "No model details returned.";
                 if (stabilityEl) stabilityEl.textContent = "Trend strength —";
             }
         }
@@ -4157,10 +4248,18 @@
             }
         }
 
+        function updatePredictionToggleStatus() {
+            const predToggle = $("#predictionToggle");
+            const statusEl = $("#predictionToggleStatus");
+            if (!predToggle || !statusEl) return;
+            statusEl.textContent = predToggle.checked ? "Active" : "Off";
+        }
+
         function updateYearSliderRange() {
             const predToggle = $("#predictionToggle");
             if (!predToggle) return;
             const showPred = predToggle.checked;
+            updatePredictionToggleStatus();
 
             // Update slider attributes
             $("#yearFromSelect").innerHTML = "";
@@ -4454,7 +4553,12 @@
                 const overlay = document.getElementById("loadingOverlay");
 
                 status.textContent = "Connecting to backend...";
-                DATA = await window.ApiClient.getDashboardData();
+                const datasetRows = await window.ApiClient.getDashboardData();
+                if (!Array.isArray(datasetRows) || datasetRows.length === 0) {
+                    throw new Error("CrimeScope API returned no dataset rows; backend may be offline.");
+                }
+                DATA = datasetRows;
+                hideApiError();
 
                 status.textContent = "Preparing filters and controls...";
                 await initFilters();
@@ -4462,6 +4566,7 @@
                 status.textContent = "Rendering the dashboard...";
                 initMap();
                 initUIEvents();
+                updatePredictionToggleStatus();
 
                 status.textContent = "Finalizing the first view...";
                 await resetFilters();
@@ -4477,7 +4582,7 @@
                         if ($("#predictionToggle")?.checked) {
                             await render();
                         }
-                        UI.toast("Forecast horizon synced to 2025", "🧠");
+                        UI.toast("Projection snapshot loaded through 2025", "🧠");
                     })
                     .catch((err) => {
                         console.error("Projection dataset load failed", err);
@@ -4485,6 +4590,8 @@
 
             } catch (e) {
                 console.error("Dashboard Init Error:", e);
+                showApiError(e?.message ?? "Unable to reach CrimeScope API. Please ensure the backend is available and try again.");
+                UI.setLoading(false);
             }
         }
 
@@ -4494,5 +4601,3 @@
 </body>
 
 </html>
-
-
