@@ -1160,7 +1160,7 @@
                         </svg>
                         Dashboard
                     </button>
-                    <a href="analysis.html" class="btn">
+                    <button id="detailedAnalysisBtn" class="btn">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path
@@ -1169,7 +1169,7 @@
                             <line x1="12" y1="22.08" x2="12" y2="12" />
                         </svg>
                         Detailed Analysis
-                    </a>
+                    </button>
                     <button id="downloadSampleBtn" class="btn">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                             <path d="M12 3v10m0 0l4-4m-4 4l-4-4M4 17v3h16v-3" stroke="currentColor" stroke-width="2"
@@ -4497,6 +4497,7 @@
             // Navigation & Hero
             const scrollDash = () => document.getElementById("data-explorer")?.scrollIntoView({ behavior: "smooth" });
             bind("#jumpDashboardBtn", "click", scrollDash);
+            bind("#detailedAnalysisBtn", "click", scrollDash);
             bind("#ctaExploreBtn", "click", scrollDash);
             bind("#heroFocusBtn", "click", scrollDash);
 
