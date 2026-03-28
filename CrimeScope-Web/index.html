@@ -4435,7 +4435,7 @@
             bind("#applyFiltersBtn", "click", async () => {
                 syncFiltersFromUI();
                 await render();
-                document.getElementById("data-explorer")?.scrollIntoView({ behavior: "smooth" });
+                document.getElementById("dashboard")?.scrollIntoView({ behavior: "smooth" });
                 UI.toast("Filters applied successfully", "✅");
             });
             bind("#ctaResetBtn", "click", async () => { await resetFilters(); UI.toast("Dashboard reset to defaults", "🔄"); });
@@ -4495,7 +4495,7 @@
             });
 
             // Navigation & Hero
-            const scrollDash = () => document.getElementById("data-explorer")?.scrollIntoView({ behavior: "smooth" });
+            const scrollDash = () => document.getElementById("dashboard")?.scrollIntoView({ behavior: "smooth" });
             bind("#jumpDashboardBtn", "click", scrollDash);
             bind("#detailedAnalysisBtn", "click", scrollDash);
             bind("#ctaExploreBtn", "click", scrollDash);
@@ -4521,7 +4521,7 @@
                     UI.toast("Filter focus invoked", "🔍");
                 } else if (e.key === "/") {
                     e.preventDefault();
-                    document.getElementById("data-explorer").scrollIntoView({ behavior: "smooth" });
+                    document.getElementById("dashboard").scrollIntoView({ behavior: "smooth" });
                     tableSearch?.focus();
                 } else if (e.key === "?" || (e.key === "/" && e.shiftKey)) {
                     $("#shortcutModal").classList.add("open");
